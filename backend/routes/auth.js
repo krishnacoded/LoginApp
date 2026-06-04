@@ -5,93 +5,216 @@ const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+const authMiddleware = require("../middleware/authMiddleware");
+
+const EMAIL_REGEX =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    let { name, email, password } = req.body;
 
-    const userExist = await pool.query(
-      "SELECT * FROM users WHERE email=$1",
-      [email]
-    );
-
-    if (userExist.rows.length > 0) {
+    if (!name || !email || !password) {
       return res.status(400).json({
-        message: "Email already exists"
+        success: false,
+        message: "All fields are required",
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
+    name = name.trim();
+    email = email.trim().toLowerCase();
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      salt
+    if (name.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Name must be at least 2 characters",
+      });
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must be at least 8 characters",
+      });
+    }
+
+    const existingUser = await pool.query(
+      "SELECT id FROM users WHERE email = $1",
+      [email]
     );
 
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    const hashedPassword =
+      await bcrypt.hash(password, 10);
+
     const newUser = await pool.query(
-      `INSERT INTO users(name,email,password)
-       VALUES($1,$2,$3)
-       RETURNING *`,
+      `
+      INSERT INTO users(name, email, password)
+      VALUES ($1, $2, $3)
+      RETURNING id, name, email
+      `,
       [name, email, hashedPassword]
     );
 
-    res.status(201).json({
-      message: "User Registered",
-      user: newUser.rows[0]
+    return res.status(201).json({
+      success: true,
+      message: "Account created successfully",
+      user: newUser.rows[0],
     });
 
   } catch (error) {
-    res.status(500).json(error.message);
+    console.error(
+      "Signup Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 });
 
+
 router.post("/login", async (req, res) => {
-
   try {
+    let { email, password } = req.body;
 
-    const { email, password } = req.body;
-
-    const user = await pool.query(
-      "SELECT * FROM users WHERE email=$1",
-      [email]
-    );
-
-    if (user.rows.length === 0) {
+    if (!email || !password) {
       return res.status(400).json({
-        message: "User not found"
+        success: false,
+        message:
+          "Email and password are required",
       });
     }
 
-    const validPassword =
+    email = email.trim().toLowerCase();
+
+    const userResult = await pool.query(
+      `
+      SELECT id, name, email, password
+      FROM users
+      WHERE email = $1
+      `,
+      [email]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    const isPasswordValid =
       await bcrypt.compare(
         password,
-        user.rows[0].password
+        user.password
       );
 
-    if (!validPassword) {
-      return res.status(400).json({
-        message: "Wrong Password"
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
       });
     }
 
     const token = jwt.sign(
       {
-        id: user.rows[0].id
+        userId: user.id,
+        email: user.email,
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: "1d"
+        expiresIn: "24h",
       }
     );
 
-    res.json({
-      message: "Login Success",
-      token
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
     });
 
   } catch (error) {
-    res.status(500).json(error.message);
-  }
+    console.error(
+      "Login Error:",
+      error
+    );
 
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 });
+
+
+router.get(
+  "/me",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userResult =
+        await pool.query(
+          `
+          SELECT id, name, email
+          FROM users
+          WHERE id = $1
+          `,
+          [req.user.userId]
+        );
+
+      if (
+        userResult.rows.length === 0
+      ) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        user: userResult.rows[0],
+      });
+
+    } catch (error) {
+      console.error(
+        "Get Current User Error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Internal server error",
+      });
+    }
+  }
+);
 
 module.exports = router;
