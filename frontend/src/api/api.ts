@@ -41,7 +41,8 @@ const processQueue = (error: any, token: string | null = null) => {
 // Response interceptor - handle refresh token
 api.interceptors.response.use(
   (response) => {
-    if (response.data) {
+    // Skip camelCase conversion for binary responses (blob downloads like PDF/XLSX/CSV)
+    if (response.data && response.config.responseType !== 'blob') {
       response.data = toCamelCase(response.data);
     }
     return response;

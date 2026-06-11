@@ -32,6 +32,10 @@ import LeavesPage from './pages/leaves/LeavesPage'
 import LeaveApprovalsPage from './pages/leaves/LeaveApprovalsPage'
 import DocumentsPage from './pages/documents/DocumentsPage'
 
+// Attendance & Assets
+import AttendancePage from './pages/attendance/AttendancePage'
+import AssetsPage from './pages/assets/AssetsPage'
+
 // Analytics
 import AnalyticsPage from './pages/analytics/AnalyticsPage'
 
@@ -109,6 +113,12 @@ export default function App() {
 
           {/* Documents */}
           <Route path="documents" element={<DocumentsPage />} />
+
+          {/* Attendance */}
+          <Route path="attendance" element={<AttendancePage />} />
+
+          {/* Assets */}
+          <Route path="assets" element={<AssetsPage />} />
 
           {/* Analytics */}
           <Route
