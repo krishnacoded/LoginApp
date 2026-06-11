@@ -1,0 +1,485 @@
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { query } = require('../config/database');
+const { sendVerificationEmail } = require('./email.service');
+const {
+  generateTokenPair,
+  verifyRefreshToken,
+  hashToken,
+} = require('../utils/jwt');
+
+class AuthService {
+async register(data) {
+  const {
+    email,
+    password,
+    firstName,
+    lastName,
+  } = data;
+
+  const { getClient } = require('../config/database');
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    const existingUser = await client.query(
+      `
+      SELECT id
+      FROM users
+      WHERE email = $1
+      `,
+      [email.toLowerCase()]
+    );
+
+    if (existingUser.rows.length > 0) {
+      throw {
+        statusCode: 409,
+        message: 'Email already registered',
+      };
+    }
+
+    // Employee role only
+    const roleResult = await client.query(
+      `
+      SELECT id, name
+      FROM roles
+      WHERE name = 'employee'
+      `
+    );
+
+    if (roleResult.rows.length === 0) {
+      throw {
+        statusCode: 500,
+        message: 'Employee role not found',
+      };
+    }
+
+
+    const passwordHash = await bcrypt.hash(
+      password,
+      12
+    );
+
+    const userResult = await client.query(
+      `
+      INSERT INTO users (
+        email,
+        password_hash,
+        role_id,
+        is_active,
+        is_email_verified
+      )
+      VALUES ($1, $2, $3, TRUE, FALSE)
+      RETURNING id, email
+      `,
+      [
+        email.toLowerCase(),
+        passwordHash,
+        roleResult.rows[0].id,
+      ]
+    );
+
+    const user = userResult.rows[0];
+
+    // Generate employee code
+    const { rows: codes } = await client.query(
+      "SELECT employee_code FROM employees WHERE employee_code LIKE 'EMP%'"
+    );
+    let maxNum = 0;
+    for (const row of codes) {
+      const numPart = row.employee_code.substring(3);
+      const num = parseInt(numPart, 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+    const employeeCode = `EMP${String(maxNum + 1).padStart(4, '0')}`;
+
+    const employeeResult = await client.query(
+      `
+      INSERT INTO employees (
+        user_id,
+        employee_code,
+        first_name,
+        last_name,
+        personal_email,
+        employment_status,
+        employment_type,
+        is_active
+      )
+      VALUES (
+        $1, $2, $3, $4, $5,
+        'active',
+        'full_time',
+        TRUE
+      )
+      RETURNING id
+      `,
+      [
+        user.id,
+        employeeCode,
+        firstName,
+        lastName,
+        email.toLowerCase(),
+      ]
+    );
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    await client.query(
+      `
+      INSERT INTO email_verification_tokens (
+        user_id,
+        token_hash,
+        expires_at
+      )
+      VALUES (
+        $1,
+        $2,
+        NOW() + INTERVAL '24 hours'
+      )
+      `,
+      [user.id, hashToken(verificationToken)]
+    );
+
+    await client.query('COMMIT');
+
+    const emailResult = await sendVerificationEmail({
+      to: user.email,
+      firstName,
+      token: verificationToken,
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: 'employee',
+      employeeId: employeeResult.rows[0].id,
+      employeeCode,
+      firstName,
+      lastName,
+      verificationEmailSent: emailResult.sent,
+    };
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+  async login(email, password, ip, userAgent) {
+    const userResult = await query(
+      `
+      SELECT
+        u.id,
+        u.email,
+        u.password_hash,
+        u.role_id,
+        u.is_active,
+        u.is_email_verified,
+        r.name AS role_name,
+        r.permissions
+      FROM users u
+      LEFT JOIN roles r ON r.id = u.role_id
+      WHERE u.email = $1
+      AND u.deleted_at IS NULL
+      `,
+      [email.toLowerCase()]
+    );
+
+    if (userResult.rows.length === 0) {
+      throw {
+        statusCode: 401,
+        message: 'Invalid credentials',
+      };
+    }
+
+    const user = userResult.rows[0];
+
+    const valid = await bcrypt.compare(
+      password,
+      user.password_hash
+    );
+
+    if (!valid) {
+      throw {
+        statusCode: 401,
+        message: 'Invalid credentials',
+      };
+    }
+
+    if (!user.is_active) {
+      throw {
+        statusCode: 403,
+        message: 'Account is inactive',
+      };
+    }
+
+    if (!user.is_email_verified) {
+      throw {
+        statusCode: 403,
+        message: 'Please verify your email before signing in',
+      };
+    }
+
+    const { accessToken, refreshToken } =
+      generateTokenPair(user);
+
+    const tokenHash = hashToken(refreshToken);
+
+    await query(
+      `
+      INSERT INTO refresh_tokens (
+        user_id,
+        token_hash,
+        expires_at,
+        ip_address,
+        user_agent
+      )
+      VALUES (
+        $1,
+        $2,
+        NOW() + INTERVAL '7 days',
+        $3,
+        $4
+      )
+      `,
+      [
+        user.id,
+        tokenHash,
+        ip || null,
+        userAgent || null,
+      ]
+    );
+
+    await query(
+      `
+      UPDATE users
+      SET last_login = NOW()
+      WHERE id = $1
+      `,
+      [user.id]
+    );
+
+    const empResult = await query(
+      `SELECT u.id, u.email, u.is_active, u.last_login, u.created_at,
+              r.name as role, r.permissions,
+              e.id as employee_id, e.employee_code, e.first_name, e.last_name,
+              e.profile_picture_url, e.designation, e.department_id,
+              d.name as department_name
+       FROM users u
+       LEFT JOIN roles r ON u.role_id = r.id
+       LEFT JOIN employees e ON e.user_id = u.id AND e.deleted_at IS NULL
+       LEFT JOIN departments d ON e.department_id = d.id
+       WHERE u.id = $1`,
+      [user.id]
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      user: empResult.rows[0],
+    };
+  }
+
+  async refreshToken(refreshToken, ip, userAgent) {
+
+    const tokenHash = hashToken(refreshToken);
+
+    const tokenResult = await query(
+      `
+      SELECT *
+      FROM refresh_tokens
+      WHERE token_hash = $1
+      AND is_revoked = FALSE
+      `,
+      [tokenHash]
+    );
+
+    if (tokenResult.rows.length === 0) {
+      throw {
+        statusCode: 401,
+        message: 'Invalid refresh token',
+      };
+    }
+
+    const userResult = await query(
+      `
+      SELECT
+        u.id,
+        u.email,
+        u.role_id,
+        r.name AS role_name,
+        r.permissions
+      FROM users u
+      LEFT JOIN roles r ON r.id = u.role_id
+      WHERE u.id = $1
+      `,
+      [decoded.sub]
+    );
+
+    if (userResult.rows.length === 0) {
+      throw {
+        statusCode: 401,
+        message: 'User not found',
+      };
+    }
+
+    await query(
+      `
+      UPDATE refresh_tokens
+      SET is_revoked = TRUE
+      WHERE token_hash = $1
+      `,
+      [tokenHash]
+    );
+
+    const user = userResult.rows[0];
+
+    const tokens = generateTokenPair(user);
+
+    await query(
+      `
+      INSERT INTO refresh_tokens (
+        user_id,
+        token_hash,
+        expires_at,
+        ip_address,
+        user_agent
+      )
+      VALUES (
+        $1,
+        $2,
+        NOW() + INTERVAL '7 days',
+        $3,
+        $4
+      )
+      `,
+      [
+        user.id,
+        hashToken(tokens.refreshToken),
+        ip || null,
+        userAgent || null,
+      ]
+    );
+
+    return tokens;
+  }
+
+  async verifyEmail(token) {
+    if (!token || typeof token !== 'string') {
+      throw { statusCode: 400, message: 'Verification token is required' };
+    }
+
+    const tokenHash = hashToken(token);
+    const { rows } = await query(
+      `
+      SELECT evt.id, evt.user_id, evt.expires_at, evt.verified_at, u.is_email_verified
+      FROM email_verification_tokens evt
+      JOIN users u ON u.id = evt.user_id
+      WHERE evt.token_hash = $1
+      `,
+      [tokenHash]
+    );
+
+    if (rows.length === 0) {
+      throw { statusCode: 400, message: 'Invalid verification link' };
+    }
+
+    const record = rows[0];
+
+    if (record.is_email_verified || record.verified_at) {
+      return { alreadyVerified: true };
+    }
+
+    if (new Date(record.expires_at).getTime() < Date.now()) {
+      throw { statusCode: 400, message: 'Verification link has expired' };
+    }
+
+    await query(
+      `
+      UPDATE users
+      SET is_email_verified = TRUE, updated_at = NOW()
+      WHERE id = $1
+      `,
+      [record.user_id]
+    );
+
+    await query(
+      `
+      UPDATE email_verification_tokens
+      SET verified_at = NOW()
+      WHERE id = $1
+      `,
+      [record.id]
+    );
+
+    return { alreadyVerified: false };
+  }
+
+  async logout(refreshToken) {
+    if (!refreshToken) return;
+
+    const tokenHash = hashToken(refreshToken);
+
+    await query(
+      `
+      UPDATE refresh_tokens
+      SET is_revoked = TRUE
+      WHERE token_hash = $1
+      `,
+      [tokenHash]
+    );
+  }
+
+  async changePassword(
+    userId,
+    currentPassword,
+    newPassword
+  ) {
+    const result = await query(
+      `
+      SELECT password_hash
+      FROM users
+      WHERE id = $1
+      `,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      throw {
+        statusCode: 404,
+        message: 'User not found',
+      };
+    }
+
+    const valid = await bcrypt.compare(
+      currentPassword,
+      result.rows[0].password_hash
+    );
+
+    if (!valid) {
+      throw {
+        statusCode: 400,
+        message: 'Current password incorrect',
+      };
+    }
+
+    const newHash = await bcrypt.hash(
+      newPassword,
+      12
+    );
+
+    await query(
+      `
+      UPDATE users
+      SET password_hash = $1
+      WHERE id = $2
+      `,
+      [newHash, userId]
+    );
+  }
+}
+
+module.exports = new AuthService();
