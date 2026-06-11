@@ -183,8 +183,8 @@ export default function DashboardPage() {
   }));
   const recentActivity = overview?.recentActivity || [];
 
-  const employeeTotal = Number(stats.total_employees || 0);
-  const activeEmployees = Number(stats.active_employees || 0);
+  const employeeTotal = Number(stats.totalEmployees || 0);
+  const activeEmployees = Number(stats.activeEmployees || 0);
   const activeRate = employeeTotal ? Math.round((activeEmployees / employeeTotal) * 100) : 0;
 
   const activityRows = recentActivity.slice(0, 5);
@@ -196,7 +196,7 @@ export default function DashboardPage() {
           <p className="text-xs font-medium text-sun/80">Overview</p>
           <h1 className="mt-1 text-2xl font-semibold text-white">People command center</h1>
           <p className="mt-1 text-sm text-white/38">
-            {formatDate(new Date(), 'EEEE, MMMM do yyyy')} / {user?.first_name || 'Team'} workspace
+            {formatDate(new Date(), 'EEEE, MMMM do yyyy')} / {user?.firstName || user?.first_name || 'Team'} workspace
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -219,8 +219,8 @@ export default function DashboardPage() {
               <>
                 <MetricCard title="Total employees" value={employeeTotal} trend={12} note="vs last month" tone="#307FE2" icon={Users} />
                 <MetricCard title="Active staff" value={activeEmployees} trend={8} note="available now" tone="#FFE264" icon={CheckCircle2} />
-                <MetricCard title="Pending leaves" value={Number(stats.pending_leaves || 0)} trend={-4} note="needs review" tone="#F2A900" icon={Calendar} />
-                <MetricCard title="Departments" value={Number(stats.total_departments || 0)} trend={16} note="coverage" tone="#003087" icon={Building2} />
+                <MetricCard title="Pending leaves" value={Number(stats.pendingLeaves || 0)} trend={-4} note="needs review" tone="#F2A900" icon={Calendar} />
+                <MetricCard title="Departments" value={Number(stats.totalDepartments || 0)} trend={16} note="coverage" tone="#003087" icon={Building2} />
               </>
             )}
           </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-xs text-white/35">On leave</p>
-                      <p className="text-lg font-semibold">{stats.on_leave || 7}</p>
+                      <p className="text-lg font-semibold">{stats.onLeave || 0}</p>
                     </div>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ export default function DashboardPage() {
                   <span className="rounded-full bg-sky-500/12 px-2.5 py-1 text-xs font-semibold text-sky-200">Onboarding</span>
                   <Zap size={18} className="text-sun" />
                 </div>
-                <p className="text-4xl font-semibold leading-none text-white">{stats.new_this_month || 30}</p>
+                <p className="text-4xl font-semibold leading-none text-white">{stats.newThisMonth || 0}</p>
                 <p className="mt-1 text-sm font-medium text-white/70">new profiles this month</p>
                 <p className="mt-4 text-xs leading-relaxed text-white/40">Track onboarding, records and leave activity from one operational workspace.</p>
               </div>
@@ -418,15 +418,15 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-3">
               {activityRows.map((act: any, index: number) => (
-                <div key={`${act.user_name || act.user_email}-${index}`} className="flex gap-3">
+                <div key={`${act.employeeName || act.userEmail}-${index}`} className="flex gap-3">
                   <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/7 text-[10px] font-semibold text-white">
-                    {(act.user_name || act.user_email || 'U').slice(0, 1)}
+                    {(act.employeeName || act.userEmail || 'U').slice(0, 1)}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-xs text-white/62">
-                      <span className="font-semibold text-white/82">{act.user_name || act.user_email}</span> {String(act.action).toLowerCase().replace(/_/g, ' ')}
+                      <span className="font-semibold text-white/82">{act.employeeName || act.userEmail}</span> {String(act.action || '').toLowerCase().replace(/_/g, ' ')}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-white/28">{new Date(act.created_at).toLocaleTimeString()}</p>
+                    <p className="mt-0.5 text-[11px] text-white/28">{act.createdAt ? new Date(act.createdAt).toLocaleTimeString() : ''}</p>
                   </div>
                 </div>
               ))}
