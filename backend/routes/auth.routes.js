@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const authController = require('../controllers/auth.controller');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 
 router.post(
   '/register',
@@ -42,6 +42,13 @@ router.post(
   '/change-password',
   authenticate,
   authController.changePassword
+);
+
+router.put(
+  '/users/:id/role',
+  authenticate,
+  authorize('admin'),
+  authController.updateUserRole
 );
 
 module.exports = router;

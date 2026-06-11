@@ -6,18 +6,23 @@ import { useNavigate } from 'react-router-dom'
 import { notificationService } from '../../api'
 import { formatRelativeDate, cn } from '../../utils'
 import { toast } from 'sonner'
+import Pagination from '../../components/common/Pagination'
 
 export default function NotificationPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [eventTypeFilter, setEventTypeFilter] = useState('')
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications', filter],
+    queryKey: ['notifications', filter, page, eventTypeFilter],
     queryFn: () => notificationService.getAll({ 
       unreadOnly: filter === 'unread',
-      limit: 100 
+      page,
+      limit: 10,
+      type: eventTypeFilter || undefined
     }),
   })
 
@@ -56,6 +61,12 @@ export default function NotificationPage() {
       document_expiry: '⏰',
       document_uploaded: '📎',
       department_updated: '🏢',
+      employee_updated: '⚙️',
+      profile_updated: '⚙️',
+      asset_assigned: '💻',
+      asset_returned: '🔄',
+      password_changed: '🔑',
+      role_changed: '🛡️',
     }
     return icons[type] || '🔔'
   }
@@ -135,14 +146,33 @@ export default function NotificationPage() {
           </button>
         </div>
 
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search notifications..."
+            placeholder="Search on this page..."
             className="input-field pl-9 text-sm"
           />
+        </div>
+
+        <div className="w-[180px]">
+          <select
+            value={eventTypeFilter}
+            onChange={(e) => { setEventTypeFilter(e.target.value); setPage(1) }}
+            className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs w-full text-white/70 focus:outline-none focus:border-sun h-10"
+          >
+            <option value="">All Categories</option>
+            <option value="new_employee">New Employee</option>
+            <option value="profile_updated">Profile Update</option>
+            <option value="leave_applied">Leave Applied</option>
+            <option value="leave_approved">Leave Approved</option>
+            <option value="leave_rejected">Leave Rejected</option>
+            <option value="asset_assigned">Asset Assigned</option>
+            <option value="asset_returned">Asset Returned</option>
+            <option value="password_changed">Password Change</option>
+            <option value="role_changed">Role Change</option>
+          </select>
         </div>
       </div>
 
@@ -212,7 +242,7 @@ export default function NotificationPage() {
                     </p>
                   </div>
                 </div>
-
+ 
                 <div className="flex items-center gap-2 ml-4 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   {!notif.isRead && (
                     <button
@@ -240,6 +270,12 @@ export default function NotificationPage() {
               </motion.div>
             ))}
           </AnimatePresence>
+        )}
+
+        {data?.pagination && (
+          <div className="pt-4">
+            <Pagination pagination={data.pagination} onPageChange={setPage} />
+          </div>
         )}
       </div>
     </div>

@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { query } = require('../config/database');
 const { sendVerificationEmail } = require('./email.service');
+const notificationService = require('./notification.service');
+const { auditLog } = require('../middleware/audit');
 const {
   generateTokenPair,
   verifyRefreshToken,
@@ -479,6 +481,84 @@ async register(data) {
       `,
       [newHash, userId]
     );
+
+    // Trigger notification
+    try {
+      await notificationService.create(
+        userId,
+        'password_changed',
+        'Security Alert: Password Changed',
+        'Your password has been changed successfully. If you did not perform this action, please contact support immediately.',
+        {},
+        '/settings'
+      );
+    } catch (err) {
+      console.error('Error creating password change notification:', err);
+    }
+  }
+
+  async updateUserRole(targetUserId, newRoleId, performedByUserId, req) {
+    const { rows: userRows } = await query(
+      `SELECT u.id, u.email, u.role_id, r.name as role_name 
+       FROM users u 
+       LEFT JOIN roles r ON u.role_id = r.id 
+       WHERE u.id = $1 AND u.deleted_at IS NULL`,
+      [targetUserId]
+    );
+
+    if (userRows.length === 0) {
+      throw { statusCode: 404, message: 'User not found' };
+    }
+
+    const targetUser = userRows[0];
+
+    const { rows: roleRows } = await query('SELECT id, name FROM roles WHERE id = $1', [newRoleId]);
+    if (roleRows.length === 0) {
+      throw { statusCode: 400, message: 'Invalid role selection' };
+    }
+    const newRole = roleRows[0];
+
+    const { rows: actorRows } = await query(
+      `SELECT u.role_id, r.name as role_name 
+       FROM users u 
+       LEFT JOIN roles r ON u.role_id = r.id 
+       WHERE u.id = $1`,
+      [performedByUserId]
+    );
+    const actorRoleName = actorRows[0]?.role_name || '';
+
+    if (actorRoleName === 'hr') {
+      if (newRole.name === 'admin' || targetUser.role_name === 'admin') {
+        throw { statusCode: 403, message: 'HR is not authorized to modify Admin roles or accounts' };
+      }
+    }
+
+    await query('UPDATE users SET role_id = $1, updated_at = NOW() WHERE id = $2', [newRoleId, targetUserId]);
+
+    try {
+      await notificationService.create(
+        targetUserId,
+        'role_changed',
+        'Account Access Updated',
+        `Your user role has been updated from ${targetUser.role_name} to ${newRole.name}.`,
+        { role: newRole.name },
+        '/dashboard'
+      );
+    } catch (err) {
+      console.error('Error creating role change notification:', err);
+    }
+
+    await auditLog(
+      performedByUserId,
+      'CHANGE_ROLE',
+      'users',
+      targetUserId,
+      { role_id: targetUser.role_id, role_name: targetUser.role_name },
+      { role_id: newRole.id, role_name: newRole.name },
+      req
+    );
+
+    return { success: true, newRole: newRole.name };
   }
 }
 

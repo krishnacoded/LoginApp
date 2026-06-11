@@ -19,6 +19,8 @@ import NotFoundPage from '../pages/errors/NotFoundPage';
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import VerifyEmailPage from '../pages/auth/VerifyEmailPage';
+import AttendancePage from '../pages/attendance/AttendancePage';
+import AssetsPage from '../pages/assets/AssetsPage';
 
 export const appRoutes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -34,18 +36,20 @@ export const appRoutes: RouteObject[] = [
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'employees', element: <EmployeesPage /> },
-      { path: 'employees/:id', element: <EmployeeProfilePage /> },
-      { path: 'departments', element: <DepartmentsPage /> },
-      { path: 'departments/:id', element: <DepartmentDetailsPage /> },
-      { path: 'skills', element: <SkillsPage /> },
-      { path: 'leaves', element: <LeavesPage /> },
-      { path: 'leaves/approvals', element: <LeaveApprovalsPage /> },
-      { path: 'documents', element: <DocumentsPage /> },
-      { path: 'analytics', element: <AnalyticsPage /> },
-      { path: 'audit-logs', element: <AuditLogsPage /> },
-      { path: 'notifications', element: <NotificationPage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      { path: 'employees', element: <ProtectedRoute roles={['admin', 'hr', 'manager']}><EmployeesPage /></ProtectedRoute> },
+      { path: 'employees/:id', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><EmployeeProfilePage /></ProtectedRoute> },
+      { path: 'departments', element: <ProtectedRoute roles={['admin', 'hr', 'manager']}><DepartmentsPage /></ProtectedRoute> },
+      { path: 'departments/:id', element: <ProtectedRoute roles={['admin', 'hr', 'manager']}><DepartmentDetailsPage /></ProtectedRoute> },
+      { path: 'skills', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><SkillsPage /></ProtectedRoute> },
+      { path: 'leaves', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><LeavesPage /></ProtectedRoute> },
+      { path: 'leaves/approvals', element: <ProtectedRoute roles={['admin', 'hr', 'manager']}><LeaveApprovalsPage /></ProtectedRoute> },
+      { path: 'attendance', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><AttendancePage /></ProtectedRoute> },
+      { path: 'assets', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><AssetsPage /></ProtectedRoute> },
+      { path: 'documents', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><DocumentsPage /></ProtectedRoute> },
+      { path: 'analytics', element: <ProtectedRoute roles={['admin', 'hr', 'manager']}><AnalyticsPage /></ProtectedRoute> },
+      { path: 'audit-logs', element: <ProtectedRoute roles={['admin']}><AuditLogsPage /></ProtectedRoute> },
+      { path: 'notifications', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><NotificationPage /></ProtectedRoute> },
+      { path: 'settings', element: <ProtectedRoute roles={['admin', 'hr', 'manager', 'employee']}><SettingsPage /></ProtectedRoute> },
       { path: 'unauthorized', element: <UnauthorizedPage /> },
     ],
   },

@@ -138,9 +138,24 @@ const changePassword = async (req, res, next) => {
   }
 };
 
+const updateUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { roleId } = req.body;
+    if (!roleId) {
+      return ApiResponse.badRequest(res, 'roleId is required');
+    }
+    const result = await authService.updateUserRole(id, roleId, req.user.id, req);
+    return ApiResponse.success(res, result, 'User role updated successfully');
+  } catch (error) {
+    if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
 module.exports = {
   login, loginValidation,
   register, registerValidation,
   verifyEmail,
-  refreshToken, logout, getMe, changePassword,
+  refreshToken, logout, getMe, changePassword, updateUserRole,
 };

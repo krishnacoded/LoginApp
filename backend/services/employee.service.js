@@ -1,6 +1,7 @@
 const { query, getClient } = require('../config/database');
 const { getPaginationParams, buildPaginationMeta } = require('../utils/pagination');
 const { auditLog } = require('../middleware/audit');
+const notificationService = require('./notification.service');
 
 class EmployeeService {
   async getAll(filters = {}, req) {
@@ -314,6 +315,21 @@ class EmployeeService {
     }
 
     await auditLog(updatedBy, 'UPDATE_EMPLOYEE', 'employee', id, existing, rows[0], req);
+
+    if (existing.user_id) {
+      try {
+        const isSelf = updatedBy === existing.user_id;
+        const type = isSelf ? 'profile_updated' : 'employee_updated';
+        const title = isSelf ? 'Profile Updated' : 'Employee Profile Updated';
+        const message = isSelf 
+          ? 'Your profile details have been updated successfully.'
+          : 'Your employee profile has been updated by HR/Administrator.';
+        await notificationService.create(existing.user_id, type, title, message, { employeeId: id }, `/employees/${id}`);
+      } catch (err) {
+        console.error('Error creating profile update notification:', err);
+      }
+    }
+
     return rows[0];
   }
 

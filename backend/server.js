@@ -16,6 +16,9 @@ const employeeRoutes = require('./routes/employee.routes');
 const departmentRoutes = require('./routes/department.routes');
 const documentRoutes = require('./routes/document.routes');
 const { skillRouter, leaveRouter, dashboardRouter, notificationRouter, auditRouter, searchRouter } = require('./routes/index.routes');
+const attendanceRoutes = require('./routes/attendance.routes');
+const assetRoutes = require('./routes/asset.routes');
+const reportRoutes = require('./routes/report.routes');
 const { errorHandler, notFound } = require('./middleware/error');
 const logger = require('./config/logger');
 const { verifyMailConnection } = require('./services/email.service');
@@ -102,6 +105,9 @@ app.use(`${API_PREFIX}/dashboard`, dashboardRouter);
 app.use(`${API_PREFIX}/notifications`, notificationRouter);
 app.use(`${API_PREFIX}/audit-logs`, auditRouter);
 app.use(`${API_PREFIX}/search`, searchRouter);
+app.use(`${API_PREFIX}/attendance`, attendanceRoutes);
+app.use(`${API_PREFIX}/assets`, assetRoutes);
+app.use(`${API_PREFIX}/reports`, reportRoutes);
 
 // 404 handler
 app.use(notFound);

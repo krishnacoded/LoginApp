@@ -21,6 +21,8 @@ import {
   Command,
   CircleDot,
   Sparkles,
+  Clock,
+  Laptop,
 } from 'lucide-react';
 import { useAuth } from '../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
@@ -37,8 +39,10 @@ const navItems = [
   { path: '/skills', icon: Zap, label: 'Skills', roles: ['admin', 'hr', 'manager', 'employee'] },
   { path: '/leaves', icon: Calendar, label: 'Leave desk', roles: ['admin', 'hr', 'manager', 'employee'] },
   { path: '/leaves/approvals', icon: BadgeCheck, label: 'Approvals', roles: ['admin', 'hr', 'manager'] },
+  { path: '/attendance', icon: Clock, label: 'Attendance', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { path: '/assets', icon: Laptop, label: 'Assets', roles: ['admin', 'hr', 'manager', 'employee'] },
   { path: '/documents', icon: FileText, label: 'Documents', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin', 'hr'] },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin', 'hr', 'manager'] },
   { path: '/audit-logs', icon: Shield, label: 'Audit logs', roles: ['admin', 'hr'] },
   { path: '/settings', icon: Settings, label: 'Settings', roles: ['admin', 'hr', 'manager', 'employee'] },
 ];
@@ -68,6 +72,8 @@ export default function AppLayout() {
     if (path.startsWith('/skills')) return { category: 'Directory', page: 'Skills' };
     if (path.startsWith('/leaves/approvals')) return { category: 'Operations', page: 'Approvals' };
     if (path.startsWith('/leaves')) return { category: 'Operations', page: 'Leave Desk' };
+    if (path.startsWith('/attendance')) return { category: 'Operations', page: 'Attendance' };
+    if (path.startsWith('/assets')) return { category: 'Operations', page: 'Assets' };
     if (path.startsWith('/documents')) return { category: 'Files', page: 'Documents' };
     if (path.startsWith('/analytics')) return { category: 'Analytics', page: 'Reports' };
     if (path.startsWith('/audit-logs')) return { category: 'Security', page: 'Audit Logs' };

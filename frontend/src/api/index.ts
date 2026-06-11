@@ -289,3 +289,120 @@ export const auditService = {
     return data.data;
   },
 };
+
+// ==============================
+// Attendance Service
+// ==============================
+export const attendanceService = {
+  async clockIn() {
+    const { data } = await api.post('/attendance/clock-in');
+    return data.data;
+  },
+
+  async clockOut() {
+    const { data } = await api.post('/attendance/clock-out');
+    return data.data;
+  },
+
+  async getTodayStatus() {
+    const { data } = await api.get('/attendance/today');
+    return data.data;
+  },
+
+  async getMyLogs(params?: Record<string, any>) {
+    const { data } = await api.get('/attendance/my-logs', { params: cleanParams(params) });
+    return data;
+  },
+
+  async getTeamLogs(params?: Record<string, any>) {
+    const { data } = await api.get('/attendance/team-logs', { params: cleanParams(params) });
+    return data;
+  },
+
+  async getAllLogs(params?: Record<string, any>) {
+    const { data } = await api.get('/attendance/all-logs', { params: cleanParams(params) });
+    return data;
+  },
+
+  async getSettings() {
+    const { data } = await api.get('/attendance/settings');
+    return data.data;
+  },
+
+  async updateSettings(settingsData: any) {
+    const { data } = await api.put('/attendance/settings', settingsData);
+    return data.data;
+  },
+
+  async getStats(date?: string) {
+    const { data } = await api.get('/attendance/stats', { params: { date } });
+    return data.data;
+  },
+
+  async getMonthlyStats(employeeId?: string, year?: number, month?: number) {
+    const url = employeeId ? `/attendance/monthly/${employeeId}` : '/attendance/monthly';
+    const { data } = await api.get(url, { params: { year, month } });
+    return data.data;
+  },
+};
+
+// ==============================
+// Asset Service
+// ==============================
+export const assetService = {
+  async getMyAssets() {
+    const { data } = await api.get('/assets/my');
+    return data.data;
+  },
+
+  async getAll(params?: Record<string, any>) {
+    const { data } = await api.get('/assets', { params: cleanParams(params) });
+    return data;
+  },
+
+  async getById(id: string) {
+    const { data } = await api.get(`/assets/${id}`);
+    return data.data;
+  },
+
+  async create(assetData: any) {
+    const { data } = await api.post('/assets', assetData);
+    return data.data;
+  },
+
+  async allocate(id: string, employeeId: string, notes?: string) {
+    const { data } = await api.post(`/assets/${id}/allocate`, { employeeId, notes });
+    return data.data;
+  },
+
+  async returnAsset(id: string, notes?: string) {
+    const { data } = await api.post(`/assets/${id}/return`, { notes });
+    return data.data;
+  },
+
+  async updateStatus(id: string, status: string, notes?: string) {
+    const { data } = await api.put(`/assets/${id}/status`, { status, notes });
+    return data.data;
+  },
+};
+
+// ==============================
+// Report Service
+// ==============================
+export const reportService = {
+  async download(reportType: 'leaves' | 'attendance' | 'assets', params: Record<string, any>, format: 'csv' | 'xlsx' | 'pdf', filename: string) {
+    const { data } = await api.get(`/reports/${reportType}`, {
+      params: cleanParams({ ...params, format }),
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${filename}.${format}`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
+};
+
