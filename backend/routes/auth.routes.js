@@ -21,6 +21,9 @@ router.get(
   authController.verifyEmail
 );
 
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+
 router.post(
   '/refresh',
   authController.refreshToken

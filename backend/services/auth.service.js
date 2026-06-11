@@ -497,6 +497,105 @@ async register(data) {
     }
   }
 
+  async forgotPassword(email) {
+    // Find user by email (don't reveal if user doesn't exist - always return success)
+    const { rows } = await query(
+      'SELECT id, email FROM users WHERE email = $1 AND deleted_at IS NULL',
+      [email.toLowerCase()]
+    );
+
+    if (rows.length === 0) {
+      return { sent: true }; // Don't reveal user existence
+    }
+
+    const user = rows[0];
+
+    // Invalidate any existing reset tokens
+    await query(
+      'UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+      [user.id]
+    );
+
+    // Generate new token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(resetToken);
+
+    await query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
+      [user.id, tokenHash]
+    );
+
+    // Get employee first name for email
+    const { rows: empRows } = await query(
+      'SELECT first_name FROM employees WHERE user_id = $1 AND deleted_at IS NULL',
+      [user.id]
+    );
+    const firstName = empRows[0]?.first_name || null;
+
+    // Send email
+    const { sendPasswordResetEmail } = require('./email.service');
+    try {
+      await sendPasswordResetEmail({ to: user.email, firstName, token: resetToken });
+    } catch (err) {
+      console.error('Error sending password reset email:', err);
+    }
+
+    return { sent: true };
+  }
+
+  async resetPassword(token, newPassword) {
+    if (!token || typeof token !== 'string') {
+      throw { statusCode: 400, message: 'Reset token is required' };
+    }
+
+    const tokenHash = hashToken(token);
+    const { rows } = await query(
+      `SELECT id, user_id, expires_at, used_at
+       FROM password_reset_tokens
+       WHERE token_hash = $1`,
+      [tokenHash]
+    );
+
+    if (rows.length === 0) {
+      throw { statusCode: 400, message: 'Invalid or expired reset link' };
+    }
+
+    const record = rows[0];
+
+    if (record.used_at) {
+      throw { statusCode: 400, message: 'This reset link has already been used' };
+    }
+
+    if (new Date(record.expires_at).getTime() < Date.now()) {
+      throw { statusCode: 400, message: 'This reset link has expired' };
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+
+    await query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [newHash, record.user_id]);
+    await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [record.id]);
+
+    // Revoke all refresh tokens for security
+    await query('UPDATE refresh_tokens SET is_revoked = TRUE WHERE user_id = $1', [record.user_id]);
+
+    // Send notification
+    try {
+      await notificationService.create(
+        record.user_id,
+        'password_changed',
+        'Security Alert: Password Reset',
+        'Your password was reset via the forgot password flow. If you did not perform this action, please contact support immediately.',
+        {},
+        '/settings'
+      );
+    } catch (err) {
+      console.error('Error creating password reset notification:', err);
+    }
+
+    return { success: true };
+  }
+
   async updateUserRole(targetUserId, newRoleId, performedByUserId, req) {
     const { rows: userRows } = await query(
       `SELECT u.id, u.email, u.role_id, r.name as role_name 

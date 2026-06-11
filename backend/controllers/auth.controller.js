@@ -153,9 +153,41 @@ const updateUserRole = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return ApiResponse.badRequest(res, 'Email is required');
+    }
+    await authService.forgotPassword(email);
+    return ApiResponse.success(res, null, 'If an account exists with this email, a password reset link has been sent.');
+  } catch (error) {
+    if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return ApiResponse.badRequest(res, 'Token and new password are required');
+    }
+    if (password.length < 8) {
+      return ApiResponse.badRequest(res, 'Password must be at least 8 characters');
+    }
+    await authService.resetPassword(token, password);
+    return ApiResponse.success(res, null, 'Password has been reset successfully. You can now sign in.');
+  } catch (error) {
+    if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
 module.exports = {
   login, loginValidation,
   register, registerValidation,
   verifyEmail,
   refreshToken, logout, getMe, changePassword, updateUserRole,
+  forgotPassword, resetPassword,
 };

@@ -133,7 +133,59 @@ async function sendVerificationEmail({ to, firstName, token }) {
   }
 }
 
+async function sendPasswordResetEmail({ to, firstName, token }) {
+  const resetUrl = `${getAppUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+  const subject = 'Reset your PeopleFlow password';
+  const text = `Hi ${firstName || 'there'}, reset your PeopleFlow password by opening this link: ${resetUrl}`;
+  const html = `
+    <div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">
+      <h2 style="margin:0 0 12px">Reset your PeopleFlow password</h2>
+      <p>Hi ${firstName || 'there'},</p>
+      <p>We received a request to reset your password. Click the button below to choose a new one.</p>
+      <p>
+        <a href="${resetUrl}" style="display:inline-block;background:#307FE2;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">
+          Reset password
+        </a>
+      </p>
+      <p style="color:#64748b;font-size:13px">This link expires in 1 hour. If you did not request a password reset, you can ignore this email.</p>
+    </div>
+  `;
+
+  if (transporter === null) {
+    initMailTransporter();
+  }
+
+  if (!transporter) {
+    logger.warn('Email provider is not configured. Password reset link generated for local testing.', {
+      to,
+      resetUrl,
+    });
+    return { sent: false, resetUrl };
+  }
+
+  try {
+    const from = process.env.EMAIL_FROM || 'PeopleFlow <onboarding@resend.dev>';
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    logger.info(`Password reset email sent to ${to}`, { messageId: info.messageId });
+    return { sent: true, resetUrl };
+  } catch (error) {
+    logger.error(`Failed to send password reset email to ${to}`, {
+      error: error.message,
+      code: error.code,
+    });
+    throw error;
+  }
+}
+
 module.exports = {
   sendVerificationEmail,
+  sendPasswordResetEmail,
   verifyMailConnection,
 };
