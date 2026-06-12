@@ -1,70 +1,272 @@
-# Getting Started with Create React App
+PeopleFlow
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+«Modern workforce management built for growing teams.»
 
-## Available Scripts
+PeopleFlow is a comprehensive Human Resource Management System (HRMS) designed to simplify how organizations manage employees, attendance, leave requests, assets, payroll records, and workplace operations.
 
-In the project directory, you can run:
+Built with scalability, security, and usability in mind, PeopleFlow enables organizations to streamline HR processes while giving employees and managers a seamless experience.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Why PeopleFlow?
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Managing people should not require navigating spreadsheets, scattered documents, and disconnected tools.
 
-### `npm test`
+PeopleFlow brings employee management, attendance tracking, leave administration, asset allocation, reporting, and organizational workflows into a single platform.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Whether you're a startup building your first team or an organization managing hundreds of employees, PeopleFlow helps keep everything organized, transparent, and efficient.
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Core Features
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Employee Management
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Complete employee directory
+- Employee profiles and records
+- Department and designation management
+- Employment history tracking
+- Search, filter, and advanced employee lookup
 
-### `npm run eject`
+Role-Based Access Control (RBAC)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Super Admin
+- HR Manager
+- Department Manager
+- Employee
+- Granular permission system
+- Secure access boundaries across modules
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Attendance Management
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- Daily attendance tracking
+- Check-in / Check-out workflows
+- Attendance status management
+- Attendance reports and analytics
+- Attendance policy support
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Leave Management
 
-## Learn More
+- Leave request workflows
+- Multi-level approval process
+- Leave balance tracking
+- Leave history and audit records
+- Team leave visibility for managers
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Asset Management
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- Asset inventory management
+- Asset assignment and allocation
+- Asset return workflows
+- Ownership tracking
+- Asset history and audit logs
 
-### Code Splitting
+Notifications & Alerts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- Real-time system notifications
+- Approval reminders
+- Leave status updates
+- Attendance-related alerts
+- Important HR announcements
 
-### Analyzing the Bundle Size
+Reports & Analytics
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- Workforce insights
+- Attendance reports
+- Leave utilization reports
+- Department-level analytics
+- Export-ready reporting
 
-### Making a Progressive Web App
+Security & Compliance
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- Authentication & authorization
+- Protected API routes
+- Activity auditing
+- Secure data handling
+- Enterprise-ready access control
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+System Architecture
 
-### Deployment
+PeopleFlow follows a modern client-server architecture.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```
+Frontend (React + TypeScript)
+│
+▼
+REST API Layer
+│
+▼
+Backend (Node.js / Express)
+│
+▼
+Database (SQL)
+```
 
-### `npm run build` fails to minify
+The architecture is designed to support modular growth, making it easy to introduce additional HR modules without affecting existing functionality.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+Technology Stack
+
+Frontend
+
+- React
+- TypeScript
+- Vite
+- React Router
+- Modern Component Architecture
+
+Backend
+
+- Node.js
+- Express.js
+- RESTful APIs
+- JWT Authentication
+
+Database
+
+- SQL Database
+- Relational Data Modeling
+
+Development Tools
+
+- Git
+- GitHub
+- ESLint
+- TypeScript
+
+---
+
+Project Structure
+
+```
+peopleflow/
+│
+├── frontend/
+│   ├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   └── hooks/
+│
+├── backend/
+│   ├── controllers/
+│   ├── routes/
+│   ├── middleware/
+│   ├── services/
+│   ├── models/
+│   └── utils/
+│
+├── database/
+│
+└── docs/
+```
+
+---
+
+Getting Started
+
+Prerequisites
+
+- Node.js 18+
+- npm or pnpm
+- SQL Database
+
+Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/your-org/peopleflow.git
+cd peopleflow
+```
+
+Install dependencies:
+
+```bash
+
+Frontend
+
+cd frontend
+npm install
+
+Backend
+
+cd ../backend
+npm install
+```
+
+Configure environment variables:
+
+```env
+DATABASE_URL=
+JWT_SECRET=
+PORT=
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+```
+
+Start development servers:
+
+```bash
+
+Backend
+
+npm run dev
+
+Frontend
+
+npm run dev
+
+---
+
+Roadmap
+
+Current
+
+- Employee Management
+- Leave Management
+- Attendance Tracking
+- Asset Management
+- Notifications
+- Reporting
+
+Planned
+
+- Payroll Management
+- Recruitment & Hiring
+- Performance Reviews
+- Employee Self-Service Enhancements
+- Mobile Application
+- Advanced Analytics Dashboard
+
+---
+
+Contributing
+
+Contributions, feature requests, and improvements are welcome.
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Open a pull request
+
+Please ensure all code follows project conventions and includes appropriate testing where applicable.
+
+---
+
+License
+
+This project is licensed under the MIT License.
+
+---
+
+About
+
+PeopleFlow was created to modernize workforce management by providing organizations with a centralized platform for managing people, processes, and workplace operations.
+
+Built with a focus on usability, transparency, and operational efficiency.
