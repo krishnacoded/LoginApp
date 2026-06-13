@@ -16,6 +16,11 @@ const schema = z.object({
   location: z.string().optional(),
   budget: z.string().optional(),
   headEmployeeId: z.string().optional(),
+  goals: z.string().optional(),
+  contactPhone: z.string().optional(),
+  contactEmail: z.string().optional().refine(val => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: 'Invalid email format',
+  }),
 })
 
 interface DepartmentFormModalProps {
@@ -35,7 +40,10 @@ export default function DepartmentFormModal({ department, onClose, onSuccess }: 
       description: department?.description || '',
       location: department?.location || '',
       budget: department?.budget?.toString() || '',
-      headEmployeeId: department?.head_employee_id || '',
+      headEmployeeId: department?.headEmployeeId || department?.head_employee_id || '',
+      goals: department?.goals || '',
+      contactPhone: department?.contactPhone || department?.contact_phone || '',
+      contactEmail: department?.contactEmail || department?.contact_email || '',
     },
   })
 
@@ -88,7 +96,22 @@ export default function DepartmentFormModal({ department, onClose, onSuccess }: 
             </div>
             <div>
               <label className="text-xs text-white/40 mb-1.5 block">Description</label>
-              <textarea {...register('description')} rows={3} placeholder="Department description..." className="input-field resize-none" />
+              <textarea {...register('description')} rows={2} placeholder="Department description..." className="input-field resize-none" />
+            </div>
+            <div>
+              <label className="text-xs text-white/40 mb-1.5 block">Goals</label>
+              <textarea {...register('goals')} rows={2} placeholder="Department goals and key results..." className="input-field resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Contact Phone / Ext</label>
+                <input {...register('contactPhone')} placeholder="+1 (555) 019-2834" className="input-field" />
+              </div>
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Contact Email</label>
+                <input {...register('contactEmail')} placeholder="dept@company.com" className={cn('input-field', errors.contactEmail && 'border-red-500/50')} />
+                {errors.contactEmail && <p className="text-xs text-red-400 mt-1">{errors.contactEmail.message as string}</p>}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -105,7 +128,7 @@ export default function DepartmentFormModal({ department, onClose, onSuccess }: 
               <select {...register('headEmployeeId')} className="input-field">
                 <option value="">No head assigned</option>
                 {(employees || []).map((e: any) => (
-                  <option key={e.id} value={e.id}>{e.first_name} {e.last_name} — {e.designation}</option>
+                  <option key={e.id} value={e.id}>{e.firstName || e.first_name} {e.lastName || e.last_name} — {e.designation}</option>
                 ))}
               </select>
             </div>

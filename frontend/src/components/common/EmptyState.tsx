@@ -19,9 +19,9 @@ export default function EmptyState({ icon: Icon, title, description, action }: E
       {Icon && (
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-          style={{ background: 'rgba(79,70,229,0.1)' }}
+          style={{ background: 'rgba(48,127,226,0.1)' }}
         >
-          <Icon size={28} className="text-lime-300/50" />
+          <Icon size={28} className="text-secondary/50" />
         </div>
       )}
       <h3 className="text-lg font-semibold text-white/50 mb-2">{title}</h3>

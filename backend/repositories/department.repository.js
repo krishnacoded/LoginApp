@@ -55,8 +55,8 @@ class DepartmentRepository {
 
   async create(data) {
     const { rows } = await query(
-      `INSERT INTO departments (name, code, description, head_employee_id, budget, location, parent_department_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO departments (name, code, description, head_employee_id, budget, location, parent_department_id, goals, contact_phone, contact_email)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         data.name,
@@ -66,6 +66,9 @@ class DepartmentRepository {
         data.budget || null,
         data.location || null,
         data.parentDepartmentId || null,
+        data.goals || null,
+        data.contactPhone || null,
+        data.contactEmail || null,
       ]
     );
     return rows[0];

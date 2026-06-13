@@ -84,6 +84,12 @@ async register(data) {
 
     const user = userResult.rows[0];
 
+    // Also insert into user_roles junction table for multi-role support
+    await client.query(
+      'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [user.id, roleResult.rows[0].id]
+    );
+
     // Generate employee code
     const { rows: codes } = await client.query(
       "SELECT employee_code FROM employees WHERE employee_code LIKE 'EMP%'"
@@ -156,6 +162,7 @@ async register(data) {
       id: user.id,
       email: user.email,
       role: 'employee',
+      roles: ['employee'],
       employeeId: employeeResult.rows[0].id,
       employeeCode,
       firstName,
@@ -180,6 +187,8 @@ async register(data) {
         u.role_id,
         u.is_active,
         u.is_email_verified,
+        u.failed_login_attempts,
+        u.locked_until,
         r.name AS role_name,
         r.permissions
       FROM users u
@@ -191,6 +200,10 @@ async register(data) {
     );
 
     if (userResult.rows.length === 0) {
+      // Audit failed login — unknown user
+      try {
+        await auditLog(null, 'FAILED_LOGIN', 'auth', null, null, { email: email.toLowerCase(), reason: 'unknown_user' }, { ip, headers: { 'user-agent': userAgent } });
+      } catch (e) { /* silent */ }
       throw {
         statusCode: 401,
         message: 'Invalid credentials',
@@ -199,12 +212,45 @@ async register(data) {
 
     const user = userResult.rows[0];
 
+    // Account lockout check — 5 failed attempts → 15 minute lock
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      const minutesLeft = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+      try {
+        await auditLog(user.id, 'FAILED_LOGIN', 'auth', user.id, null, { email: email.toLowerCase(), reason: 'account_locked', locked_until: user.locked_until }, { ip, headers: { 'user-agent': userAgent } });
+      } catch (e) { /* silent */ }
+      throw {
+        statusCode: 423,
+        message: `Account is locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`,
+      };
+    }
+
     const valid = await bcrypt.compare(
       password,
       user.password_hash
     );
 
     if (!valid) {
+      // Increment failed login attempts
+      const newAttempts = (user.failed_login_attempts || 0) + 1;
+      const MAX_ATTEMPTS = 5;
+      const LOCKOUT_MINUTES = 15;
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        await query(
+          `UPDATE users SET failed_login_attempts = $1, locked_until = NOW() + INTERVAL '${LOCKOUT_MINUTES} minutes' WHERE id = $2`,
+          [newAttempts, user.id]
+        );
+      } else {
+        await query(
+          'UPDATE users SET failed_login_attempts = $1 WHERE id = $2',
+          [newAttempts, user.id]
+        );
+      }
+
+      try {
+        await auditLog(user.id, 'FAILED_LOGIN', 'auth', user.id, null, { email: email.toLowerCase(), reason: 'invalid_password', attempt: newAttempts }, { ip, headers: { 'user-agent': userAgent } });
+      } catch (e) { /* silent */ }
+
       throw {
         statusCode: 401,
         message: 'Invalid credentials',
@@ -224,6 +270,12 @@ async register(data) {
         message: 'Please verify your email before signing in',
       };
     }
+
+    // Successful login — reset failed attempts and lockout
+    await query(
+      'UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1',
+      [user.id]
+    );
 
     const { accessToken, refreshToken } =
       generateTokenPair(user);
@@ -264,6 +316,7 @@ async register(data) {
       [user.id]
     );
 
+    // Load user with roles and resolved permissions for response
     const empResult = await query(
       `SELECT u.id, u.email, u.is_active, u.last_login, u.created_at,
               r.name as role, r.permissions,
@@ -278,10 +331,32 @@ async register(data) {
       [user.id]
     );
 
+    // Load all roles from user_roles junction
+    const { rows: roleRows } = await query(
+      'SELECT r.name FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = $1',
+      [user.id]
+    );
+    const roles = roleRows.length > 0 ? roleRows.map(r => r.name) : (empResult.rows[0]?.role ? [empResult.rows[0].role] : []);
+
+    // Load resolved permissions
+    let resolvedPermissions = [];
+    const hasAll = roles.includes('admin') || (empResult.rows[0]?.permissions || []).includes('all');
+    if (hasAll) {
+      resolvedPermissions = ['all'];
+    } else {
+      const { rows: permRows } = await query(
+        `SELECT DISTINCT p.code FROM user_roles ur JOIN role_permissions rp ON rp.role_id = ur.role_id JOIN permissions p ON p.id = rp.permission_id WHERE ur.user_id = $1`,
+        [user.id]
+      );
+      resolvedPermissions = permRows.map(r => r.code);
+    }
+
+    const userData = { ...empResult.rows[0], roles, resolvedPermissions };
+
     return {
       accessToken,
       refreshToken,
-      user: empResult.rows[0],
+      user: userData,
     };
   }
 
@@ -306,6 +381,15 @@ async register(data) {
       };
     }
 
+    // Fix: use the stored token's user_id instead of undefined 'decoded'
+    const storedToken = tokenResult.rows[0];
+
+    // Check token expiry
+    if (new Date(storedToken.expires_at) < new Date()) {
+      await query('UPDATE refresh_tokens SET is_revoked = TRUE WHERE id = $1', [storedToken.id]);
+      throw { statusCode: 401, message: 'Refresh token expired' };
+    }
+
     const userResult = await query(
       `
       SELECT
@@ -318,7 +402,7 @@ async register(data) {
       LEFT JOIN roles r ON r.id = u.role_id
       WHERE u.id = $1
       `,
-      [decoded.sub]
+      [storedToken.user_id]
     );
 
     if (userResult.rows.length === 0) {
@@ -482,6 +566,11 @@ async register(data) {
       [newHash, userId]
     );
 
+    // Audit log for password change
+    try {
+      await auditLog(userId, 'CHANGE_PASSWORD', 'users', userId, null, { event: 'password_changed' });
+    } catch (e) { /* silent */ }
+
     // Trigger notification
     try {
       await notificationService.create(
@@ -633,6 +722,16 @@ async register(data) {
     }
 
     await query('UPDATE users SET role_id = $1, updated_at = NOW() WHERE id = $2', [newRoleId, targetUserId]);
+
+    // Also update user_roles junction table
+    // Remove old primary role and add new one
+    if (targetUser.role_id) {
+      await query('DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2', [targetUserId, targetUser.role_id]);
+    }
+    await query(
+      'INSERT INTO user_roles (user_id, role_id, assigned_by) VALUES ($1, $2, $3) ON CONFLICT (user_id, role_id) DO NOTHING',
+      [targetUserId, newRoleId, performedByUserId]
+    );
 
     try {
       await notificationService.create(

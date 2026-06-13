@@ -14,6 +14,14 @@ const updateSettings = Joi.object({
   lateArrivalThreshold: Joi.string().regex(timeRegex).required().messages({
     'string.pattern.base': 'Late arrival threshold must be in HH:MM or HH:MM:SS format',
   }),
+  geofencingEnabled: Joi.boolean().optional(),
+  geofenceLatitude: Joi.number().min(-90).max(90).optional().allow(null),
+  geofenceLongitude: Joi.number().min(-180).max(180).optional().allow(null),
+  geofenceRadiusMeters: Joi.number().integer().min(0).optional().allow(null),
+  deviceTrackingEnabled: Joi.boolean().optional(),
+  overtimeEnabled: Joi.boolean().optional(),
+  overtimeThresholdHours: Joi.number().min(0).max(24).optional().allow(null),
+  earlyDepartureThresholdTime: Joi.string().regex(timeRegex).optional().allow(null),
 });
 
 const listQuery = Joi.object({

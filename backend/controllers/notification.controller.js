@@ -29,8 +29,12 @@ const deleteNotification = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-const createNotification = async (userId, type, title, message, data = {}, actionUrl = null) => {
-  return await notificationService.create(userId, type, title, message, data, actionUrl);
+const createManualNotification = async (req, res, next) => {
+  try {
+    const { userId, type, title, message, actionUrl } = req.body;
+    const notif = await notificationService.create(userId, type, title, message, {}, actionUrl);
+    return ApiResponse.created(res, notif, 'Notification sent');
+  } catch (error) { next(error); }
 };
 
-module.exports = { getAll, markRead, markAllRead, deleteNotification, createNotification };
+module.exports = { getAll, markRead, markAllRead, deleteNotification, createManualNotification };

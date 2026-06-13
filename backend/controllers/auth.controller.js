@@ -110,7 +110,7 @@ const getMe = async (req, res) => {
   const { query } = require('../config/database');
   
   const { rows } = await query(
-    `SELECT u.id, u.email, u.is_active, u.last_login, u.created_at,
+    `SELECT u.id, u.email, u.is_active, u.last_login, u.created_at, u.theme,
             r.name as role, r.permissions,
             e.id as employee_id, e.employee_code, e.first_name, e.last_name,
             e.profile_picture_url, e.designation, e.department_id,
@@ -124,7 +124,29 @@ const getMe = async (req, res) => {
   );
 
   if (rows.length === 0) return ApiResponse.notFound(res);
-  return ApiResponse.success(res, rows[0]);
+
+  const userData = rows[0];
+
+  // Load all assigned roles from user_roles junction table
+  const { rows: roleRows } = await query(
+    'SELECT r.name FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = $1',
+    [req.user.id]
+  );
+  userData.roles = roleRows.length > 0 ? roleRows.map(r => r.name) : (userData.role ? [userData.role] : []);
+
+  // Load resolved permissions from normalized tables
+  const hasAll = userData.roles.includes('admin') || (userData.permissions || []).includes('all');
+  if (hasAll) {
+    userData.resolvedPermissions = ['all'];
+  } else {
+    const { rows: permRows } = await query(
+      `SELECT DISTINCT p.code FROM user_roles ur JOIN role_permissions rp ON rp.role_id = ur.role_id JOIN permissions p ON p.id = rp.permission_id WHERE ur.user_id = $1`,
+      [req.user.id]
+    );
+    userData.resolvedPermissions = permRows.map(r => r.code);
+  }
+
+  return ApiResponse.success(res, userData);
 };
 
 const changePassword = async (req, res, next) => {
@@ -134,6 +156,20 @@ const changePassword = async (req, res, next) => {
     return ApiResponse.success(res, null, 'Password changed successfully');
   } catch (error) {
     if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
+const updateTheme = async (req, res, next) => {
+  try {
+    const { theme } = req.body;
+    if (!theme) {
+      return ApiResponse.badRequest(res, 'Theme is required');
+    }
+    const { query } = require('../config/database');
+    await query('UPDATE users SET theme = $1 WHERE id = $2', [theme, req.user.id]);
+    return ApiResponse.success(res, { theme }, 'Theme updated successfully');
+  } catch (error) {
     next(error);
   }
 };
@@ -188,6 +224,6 @@ module.exports = {
   login, loginValidation,
   register, registerValidation,
   verifyEmail,
-  refreshToken, logout, getMe, changePassword, updateUserRole,
+  refreshToken, logout, getMe, changePassword, updateTheme, updateUserRole,
   forgotPassword, resetPassword,
 };

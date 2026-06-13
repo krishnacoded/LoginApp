@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/report.controller');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, requirePermission } = require('../middleware/auth');
 
 // Secure all reporting endpoints: Admin, HR, and Manager roles only
 router.use(authenticate);
 router.use(authorize('admin', 'hr', 'manager'));
+router.use(requirePermission('report.export'));
 
 /**
  * @swagger

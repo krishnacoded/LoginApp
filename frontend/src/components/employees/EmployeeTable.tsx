@@ -157,7 +157,7 @@ export default function EmployeeTable({
                           >
                             <Edit
                               size={14}
-                              className="text-lime-300"
+                              className="text-primary"
                             />
                           </button>
 

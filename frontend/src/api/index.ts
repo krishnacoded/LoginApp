@@ -263,6 +263,11 @@ export const notificationService = {
     const { data } = await api.delete(`/notifications/${id}`);
     return data;
   },
+
+  async sendManual(body: { userId: string; type: string; title: string; message: string; actionUrl?: string }) {
+    const { data } = await api.post('/notifications', body);
+    return data.data;
+  },
 };
 
 // ==============================
@@ -294,13 +299,13 @@ export const auditService = {
 // Attendance Service
 // ==============================
 export const attendanceService = {
-  async clockIn() {
-    const { data } = await api.post('/attendance/clock-in');
+  async clockIn(body?: any) {
+    const { data } = await api.post('/attendance/clock-in', body || {});
     return data.data;
   },
 
-  async clockOut() {
-    const { data } = await api.post('/attendance/clock-out');
+  async clockOut(body?: any) {
+    const { data } = await api.post('/attendance/clock-out', body || {});
     return data.data;
   },
 
@@ -344,6 +349,71 @@ export const attendanceService = {
     const { data } = await api.get(url, { params: { year, month } });
     return data.data;
   },
+
+  async startBreak(breakType: string) {
+    const { data } = await api.post('/attendance/break/start', { breakType });
+    return data.data;
+  },
+
+  async endBreak() {
+    const { data } = await api.post('/attendance/break/end');
+    return data.data;
+  },
+
+  async getHolidays() {
+    const { data } = await api.get('/attendance/holidays');
+    return data.data;
+  },
+};
+
+export const shiftService = {
+  async getAll() {
+    const { data } = await api.get('/shifts');
+    return data.data;
+  },
+  async create(shiftData: any) {
+    const { data } = await api.post('/shifts', shiftData);
+    return data.data;
+  },
+  async update(id: string, shiftData: any) {
+    const { data } = await api.put(`/shifts/${id}`, shiftData);
+    return data.data;
+  },
+  async delete(id: string) {
+    const { data } = await api.delete(`/shifts/${id}`);
+    return data.data;
+  },
+  async assign(assignData: any) {
+    const { data } = await api.post('/shifts/assign', assignData);
+    return data.data;
+  },
+  async bulkAssign(assignData: any) {
+    const { data } = await api.post('/shifts/bulk-assign', assignData);
+    return data.data;
+  },
+};
+
+export const regularizationService = {
+  async apply(reqData: any) {
+    const { data } = await api.post('/regularizations', reqData);
+    return data.data;
+  },
+  async getMy() {
+    const { data } = await api.get('/regularizations/my');
+    return data.data;
+  },
+  async getTeam() {
+    const { data } = await api.get('/regularizations/team');
+    return data.data;
+  },
+  async getAll() {
+    const { data } = await api.get('/regularizations/all');
+    return data.data;
+  },
+  async review(id: string, reviewData: any) {
+    const { data } = await api.post(`/regularizations/${id}/review`, reviewData);
+    return data.data;
+  },
 };
 
 // ==============================
@@ -384,6 +454,26 @@ export const assetService = {
     const { data } = await api.put(`/assets/${id}/status`, { status, notes });
     return data.data;
   },
+
+  async getAssetRequests() {
+    const { data } = await api.get('/assets/requests');
+    return data.data;
+  },
+
+  async createAssetRequest(requestData: { assetType: string; reason: string }) {
+    const { data } = await api.post('/assets/requests', requestData);
+    return data.data;
+  },
+
+  async approveAssetRequest(id: string, comment?: string, assetId?: string) {
+    const { data } = await api.post(`/assets/requests/${id}/approve`, { comment, assetId });
+    return data.data;
+  },
+
+  async rejectAssetRequest(id: string, comment?: string) {
+    const { data } = await api.post(`/assets/requests/${id}/reject`, { comment });
+    return data.data;
+  },
 };
 
 // ==============================
@@ -404,5 +494,25 @@ export const reportService = {
     link.remove();
     window.URL.revokeObjectURL(url);
   }
+};
+
+// ==============================
+// Verification Service
+// ==============================
+export const verificationService = {
+  async submitRequest(type: 'skill' | 'certification' | 'education' | 'license', data: any) {
+    const { data: responseData } = await api.post('/verifications/request', { type, data });
+    return responseData.data;
+  },
+
+  async getPending() {
+    const { data } = await api.get('/verifications/pending');
+    return data.data;
+  },
+
+  async actionRequest(type: string, id: string, action: 'approve' | 'reject', comment?: string) {
+    const { data } = await api.post(`/verifications/${type}/${id}/action`, { action, comment });
+    return data.data;
+  },
 };
 

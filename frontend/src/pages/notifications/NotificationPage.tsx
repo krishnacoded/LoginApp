@@ -120,9 +120,9 @@ export default function NotificationPage() {
             onClick={() => setFilter('all')}
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-              filter === 'all' ? 'text-white' : 'text-white/35 hover:text-white/60'
+              filter === 'all' ? 'text-[#001133]' : 'text-white/35 hover:text-white/60'
             )}
-            style={filter === 'all' ? { background: 'linear-gradient(135deg, #a3ff29, #21d978)' } : {}}
+            style={filter === 'all' ? { background: 'linear-gradient(135deg, #FFE264, #F2A900)' } : {}}
           >
             All Updates
           </button>
@@ -130,15 +130,15 @@ export default function NotificationPage() {
             onClick={() => setFilter('unread')}
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2',
-              filter === 'unread' ? 'text-white' : 'text-white/35 hover:text-white/60'
+              filter === 'unread' ? 'text-[#001133]' : 'text-white/35 hover:text-white/60'
             )}
-            style={filter === 'unread' ? { background: 'linear-gradient(135deg, #a3ff29, #21d978)' } : {}}
+            style={filter === 'unread' ? { background: 'linear-gradient(135deg, #FFE264, #F2A900)' } : {}}
           >
             Unread
             {unreadCount > 0 && (
               <span className={cn(
                 'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
-                filter === 'unread' ? 'bg-[#001133] text-lime-300' : 'bg-lime-400 text-white'
+                filter === 'unread' ? 'bg-[#001133] text-amber-300' : 'bg-amber-400 text-[#001133]'
               )}>
                 {unreadCount}
               </span>
@@ -187,8 +187,8 @@ export default function NotificationPage() {
         ) : filteredNotifs.length === 0 ? (
           <div className="glass-card rounded-2xl p-16 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-              style={{ background: 'rgba(163,255,41,0.05)', border: '1px solid rgba(163,255,41,0.1)' }}>
-              <Inbox size={26} className="text-lime-300/40" />
+              style={{ background: 'rgba(48, 127, 226, 0.08)', border: '1px solid rgba(48, 127, 226, 0.15)' }}>
+              <Inbox size={26} className="text-secondary opacity-70" />
             </div>
             <h3 className="text-lg font-semibold text-white/70 mb-1">
               No notifications
@@ -210,13 +210,13 @@ export default function NotificationPage() {
                 className={cn(
                   'flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group',
                   !notif.isRead 
-                    ? 'bg-lime-400/5 hover:bg-lime-400/10 border-lime-400/15' 
+                    ? 'bg-amber-400/5 hover:bg-amber-400/10 border-amber-400/15' 
                     : 'bg-white/2 hover:bg-white/4 border-white/6 hover:border-white/10'
                 )}
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
-                    style={{ background: !notif.isRead ? 'rgba(163,255,41,0.08)' : 'rgba(255,255,255,0.03)' }}>
+                    style={{ background: !notif.isRead ? 'rgba(48, 127, 226, 0.08)' : 'rgba(255,255,255,0.03)' }}>
                     {getNotifIcon(notif.type)}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -228,7 +228,7 @@ export default function NotificationPage() {
                         {notif.title}
                       </p>
                       {!notif.isRead && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-lime-400 flex-shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
                       )}
                     </div>
                     <p className={cn(
@@ -250,7 +250,7 @@ export default function NotificationPage() {
                         e.stopPropagation()
                         markReadMutation.mutate(notif.id)
                       }}
-                      className="p-2 rounded-xl bg-white/3 hover:bg-lime-400/20 text-white/40 hover:text-lime-300 transition-all"
+                      className="p-2 rounded-xl bg-white/3 hover:bg-amber-400/20 text-white/40 hover:text-amber-300 transition-all"
                       title="Mark as read"
                     >
                       <Check size={14} />

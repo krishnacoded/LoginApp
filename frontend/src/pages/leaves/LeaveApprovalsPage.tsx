@@ -50,7 +50,7 @@ export default function LeaveApprovalsPage() {
             { label: 'Pending', value: stats.pending, color: '#D97706', icon: Clock },
             { label: 'Approved', value: stats.approved, color: '#059669', icon: CheckCircle2 },
             { label: 'Rejected', value: stats.rejected, color: '#DC2626', icon: XCircle },
-            { label: 'Total', value: stats.total, color: '#a3ff29', icon: Users },
+            { label: 'Total', value: stats.total, color: '#307FE2', icon: Users },
           ].map(({ label, value, color, icon: Icon }) => (
             <div key={label} className="glass-card rounded-xl p-4">
               <div className="flex items-center justify-between">

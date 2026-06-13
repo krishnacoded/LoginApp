@@ -13,11 +13,11 @@ export default function HeroSection({ name = 'there', activeEmployees = 0, newTh
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden rounded-lg border border-lime-300/14 bg-[linear-gradient(135deg,rgba(163,255,41,.18),rgba(33,217,120,.06)_48%,rgba(255,255,255,.03))] p-5"
+      className="overflow-hidden rounded-lg border border-primary/14 bg-[linear-gradient(135deg,rgba(242,169,0,.15),rgba(255,226,100,.05)_48%,rgba(255,255,255,.03))] p-5"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-lime-300/12 px-3 py-1 text-xs font-semibold text-lime-200">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/12 px-3 py-1 text-xs font-semibold text-primary">
             <Sparkles size={13} />
             People operations live
           </div>
@@ -29,7 +29,7 @@ export default function HeroSection({ name = 'there', activeEmployees = 0, newTh
             <p className="text-xs text-white/38">Active staff</p>
             <p className="mt-1 text-2xl font-semibold text-white">{activeEmployees}</p>
           </div>
-          <div className="rounded-lg bg-lime-300 p-3 text-[#07100c]">
+          <div className="rounded-lg bg-primary p-3 text-midnight font-bold">
             <p className="text-xs font-semibold text-black/56">New this month</p>
             <p className="mt-1 text-2xl font-semibold">{newThisMonth}</p>
           </div>

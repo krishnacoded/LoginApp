@@ -48,6 +48,12 @@ router.post(
 );
 
 router.put(
+  '/theme',
+  authenticate,
+  authController.updateTheme
+);
+
+router.put(
   '/users/:id/role',
   authenticate,
   authorize('admin'),

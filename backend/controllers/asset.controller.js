@@ -81,6 +81,50 @@ const getMyAssets = async (req, res, next) => {
   }
 };
 
+const getAssetRequests = async (req, res, next) => {
+  try {
+    const employeeId = await getEmployeeId(req.user.id);
+    const requests = await assetService.getAssetRequests(employeeId, req.user.roles || [req.user.role], req.user.id);
+    return ApiResponse.success(res, requests);
+  } catch (error) {
+    if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
+const createAssetRequest = async (req, res, next) => {
+  try {
+    const employeeId = await getEmployeeId(req.user.id);
+    const request = await assetService.createAssetRequest(employeeId, req.body, req.user.id, req);
+    return ApiResponse.created(res, request, 'Asset request submitted successfully');
+  } catch (error) {
+    if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
+const approveAssetRequest = async (req, res, next) => {
+  try {
+    const { comment } = req.body;
+    const request = await assetService.approveAssetRequest(req.params.id, comment, req.user.id, req.user.roles || [req.user.role], req);
+    return ApiResponse.success(res, request, 'Asset request approved successfully');
+  } catch (error) {
+    if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
+const rejectAssetRequest = async (req, res, next) => {
+  try {
+    const { comment } = req.body;
+    const request = await assetService.rejectAssetRequest(req.params.id, comment, req.user.id, req.user.roles || [req.user.role], req);
+    return ApiResponse.success(res, request, 'Asset request rejected successfully');
+  } catch (error) {
+    if (error.statusCode) return ApiResponse.error(res, error.message, error.statusCode);
+    next(error);
+  }
+};
+
 module.exports = {
   getAll,
   getById,
@@ -89,4 +133,8 @@ module.exports = {
   returnAsset,
   updateStatus,
   getMyAssets,
+  getAssetRequests,
+  createAssetRequest,
+  approveAssetRequest,
+  rejectAssetRequest,
 };

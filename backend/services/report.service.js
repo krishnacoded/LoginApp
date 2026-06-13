@@ -157,10 +157,16 @@ class ReportService {
         a.clock_in,
         a.clock_out,
         a.work_hours,
-        a.status
+        a.break_duration_minutes,
+        a.overtime_hours,
+        a.is_wfh,
+        a.is_on_duty,
+        a.status,
+        s.name as shift_name
       FROM attendance a
       JOIN employees e ON a.employee_id = e.id
       LEFT JOIN departments d ON e.department_id = d.id
+      LEFT JOIN shifts s ON a.shift_id = s.id
       ${filterClause}
       ORDER BY a.date DESC, e.last_name ASC, e.first_name ASC
     `;

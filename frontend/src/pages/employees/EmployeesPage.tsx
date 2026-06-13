@@ -286,10 +286,10 @@ export default function EmployeesPage() {
                   className={cn(
                     'w-8 h-8 rounded-lg text-sm font-medium transition-all',
                     page === p
-                      ? 'text-white'
+                      ? 'text-[#001133]'
                       : 'text-white/30 hover:text-white/60 hover:bg-white/5'
                   )}
-                  style={page === p ? { background: 'linear-gradient(135deg, #a3ff29, #21d978)' } : {}}
+                  style={page === p ? { background: 'linear-gradient(135deg, #FFE264, #F2A900)' } : {}}
                 >
                   {p}
                 </button>

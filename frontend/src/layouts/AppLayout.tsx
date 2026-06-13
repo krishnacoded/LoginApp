@@ -23,6 +23,7 @@ import {
   Sparkles,
   Clock,
   Laptop,
+  Award,
 } from 'lucide-react';
 import { useAuth } from '../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
@@ -34,21 +35,22 @@ import Logo from '../components/common/Logo';
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Overview', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { path: '/employees', icon: Users, label: 'Employees', roles: ['admin', 'hr', 'manager'] },
-  { path: '/departments', icon: Building2, label: 'Departments', roles: ['admin', 'hr', 'manager'] },
-  { path: '/skills', icon: Zap, label: 'Skills', roles: ['admin', 'hr', 'manager', 'employee'] },
+  { path: '/employees', icon: Users, label: 'Employees', roles: ['admin', 'hr', 'manager'], permission: 'employee.view' },
+  { path: '/departments', icon: Building2, label: 'Departments', roles: ['admin', 'hr', 'manager'], permission: 'department.view' },
+  { path: '/skills', icon: Zap, label: 'Skills', roles: ['admin', 'hr', 'manager', 'employee'], permission: 'skill.view' },
   { path: '/leaves', icon: Calendar, label: 'Leave desk', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { path: '/leaves/approvals', icon: BadgeCheck, label: 'Approvals', roles: ['admin', 'hr', 'manager'] },
+  { path: '/leaves/approvals', icon: BadgeCheck, label: 'Approvals', roles: ['admin', 'hr', 'manager'], permission: 'leave.approve' },
+  { path: '/verifications/approvals', icon: Award, label: 'Verifications', roles: ['admin', 'hr', 'manager'] },
   { path: '/attendance', icon: Clock, label: 'Attendance', roles: ['admin', 'hr', 'manager', 'employee'] },
   { path: '/assets', icon: Laptop, label: 'Assets', roles: ['admin', 'hr', 'manager', 'employee'] },
   { path: '/documents', icon: FileText, label: 'Documents', roles: ['admin', 'hr', 'manager', 'employee'] },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin', 'hr', 'manager'] },
-  { path: '/audit-logs', icon: Shield, label: 'Audit logs', roles: ['admin', 'hr'] },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin', 'hr', 'manager'], permission: 'report.view' },
+  { path: '/audit-logs', icon: Shield, label: 'Audit logs', roles: ['admin', 'hr'], permission: 'audit.view' },
   { path: '/settings', icon: Settings, label: 'Settings', roles: ['admin', 'hr', 'manager', 'employee'] },
 ];
 
 export default function AppLayout() {
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout, hasRole, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -71,6 +73,7 @@ export default function AppLayout() {
     if (path.startsWith('/departments')) return { category: 'Organization', page: 'Departments' };
     if (path.startsWith('/skills')) return { category: 'Directory', page: 'Skills' };
     if (path.startsWith('/leaves/approvals')) return { category: 'Operations', page: 'Approvals' };
+    if (path.startsWith('/verifications/approvals')) return { category: 'Operations', page: 'Verifications' };
     if (path.startsWith('/leaves')) return { category: 'Operations', page: 'Leave Desk' };
     if (path.startsWith('/attendance')) return { category: 'Operations', page: 'Attendance' };
     if (path.startsWith('/assets')) return { category: 'Operations', page: 'Assets' };
@@ -99,7 +102,22 @@ export default function AppLayout() {
     navigate('/login');
   };
 
-  const visibleNav = navItems.filter((item) => item.roles.some((role) => hasRole(role)));
+  const visibleNav = navItems.map((item) => {
+    if (item.path === '/employees' && !hasRole(['admin', 'hr', 'manager']) && (user?.employeeId || user?.employee_id)) {
+      return {
+        ...item,
+        path: `/employees/${user.employeeId || user.employee_id}`,
+        label: 'My Profile',
+        roles: ['admin', 'hr', 'manager', 'employee'],
+        permission: undefined
+      };
+    }
+    return item;
+  }).filter((item) => {
+    if (item.roles && !item.roles.some((role) => hasRole(role))) return false;
+    if (item.permission) return hasPermission(item.permission);
+    return true;
+  });
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
@@ -212,15 +230,15 @@ export default function AppLayout() {
   );
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_50%_-14%,rgba(48,127,226,0.18),transparent_30rem),radial-gradient(circle_at_88%_10%,rgba(242,169,0,0.10),transparent_24rem),linear-gradient(180deg,#00205B_0,#001133_5.25rem,#000b1d_5.25rem,#00050e_100%)] p-3 md:p-5">
-      <div className="flex h-[calc(100vh-1.5rem)] overflow-hidden rounded-lg border border-white/10 bg-[#00050e] shadow-[0_30px_90px_rgba(0,0,0,0.6)] md:h-[calc(100vh-2.5rem)]">
+    <div className="min-h-screen overflow-hidden p-3 md:p-5" style={{ background: 'var(--bg-app-gradient)' }}>
+      <div className="flex h-[calc(100vh-1.5rem)] overflow-hidden rounded-lg border shadow-[0_30px_90px_rgba(0,0,0,0.6)] md:h-[calc(100vh-2.5rem)]" style={{ backgroundColor: 'var(--bg-layout-inner)', borderColor: 'var(--border-layout-inner)' }}>
         <motion.aside
           animate={{ width: collapsed ? 64 : 240 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
           className="relative z-20 hidden flex-shrink-0 flex-col md:flex"
           style={{
-            background: 'linear-gradient(180deg, rgba(10,13,12,0.98) 0%, rgba(8,10,9,0.98) 100%)',
-            borderRight: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--sidebar-bg)',
+            borderRight: '1px solid var(--sidebar-border)',
           }}
         >
           <SidebarContent />
@@ -229,11 +247,11 @@ export default function AppLayout() {
             onClick={() => setCollapsed(!collapsed)}
             className="absolute -right-3 top-7 z-30 flex h-6 w-6 items-center justify-center rounded-full transition-all duration-200 hover:scale-110"
             style={{
-              background: 'linear-gradient(135deg, #a3ff29, #21d978)',
-              boxShadow: '0 0 16px rgba(163,255,41,0.36)',
+              background: 'linear-gradient(135deg, #FFE264, #F2A900)',
+              boxShadow: '0 0 16px rgba(242, 169, 0, 0.36)',
             }}
           >
-            {collapsed ? <ChevronRight size={12} className="text-[#07100c]" /> : <ChevronLeft size={12} className="text-[#07100c]" />}
+            {collapsed ? <ChevronRight size={12} className="text-[#001133]" /> : <ChevronLeft size={12} className="text-[#001133]" />}
           </button>
         </motion.aside>
 
@@ -254,8 +272,8 @@ export default function AppLayout() {
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 className="fixed bottom-0 left-0 top-0 z-50 w-64 md:hidden"
                 style={{
-                  background: '#0a0d0c',
-                  borderRight: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--sidebar-bg)',
+                  borderRight: '1px solid var(--sidebar-border)',
                 }}
               >
                 <SidebarContent />
@@ -266,8 +284,8 @@ export default function AppLayout() {
 
         <div className="flex flex-1 flex-col overflow-hidden">
           <header
-            className="flex h-14 flex-shrink-0 items-center gap-4 bg-[#0c100f]/90 px-4 md:px-5"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            className="flex h-14 flex-shrink-0 items-center gap-4 px-4 md:px-5"
+            style={{ background: 'var(--header-bg)', borderBottom: '1px solid var(--header-border)' }}
           >
             <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 transition-colors hover:bg-white/5 md:hidden">
               <Menu size={20} className="text-white/60" />
@@ -311,7 +329,7 @@ export default function AppLayout() {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto bg-[#00050e]">
+          <main className="flex-1 overflow-y-auto bg-transparent">
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="h-full">
               <Outlet />
             </motion.div>

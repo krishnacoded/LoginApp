@@ -13,10 +13,10 @@ import SkillFormModal from '../../components/skills/SkillFormModal'
 import { debounce, cn } from '../../utils'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Technical: '#a3ff29',
-  'Soft Skills': '#21d978',
-  Management: '#0f8f55',
-  'Domain Knowledge': '#059669',
+  Technical: '#307FE2',
+  'Soft Skills': '#FFE264',
+  Management: '#00205B',
+  'Domain Knowledge': '#F2A900',
 }
 
 export default function SkillsPage() {
@@ -65,14 +65,14 @@ export default function SkillsPage() {
         <SearchInput value={search} onChange={v => { setSearch(v); doSearch(v) }} placeholder="Search skills..." isLoading={isLoading} className="max-w-xs" />
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => setCategoryFilter('')}
-            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all', !categoryFilter ? 'text-white' : 'btn-secondary')}
-            style={!categoryFilter ? { background: 'linear-gradient(135deg, #a3ff29, #21d978)' } : {}}>
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all', !categoryFilter ? 'text-[#001133]' : 'btn-secondary')}
+            style={!categoryFilter ? { background: 'linear-gradient(135deg, #FFE264, #F2A900)' } : {}}>
             All
           </button>
           {(categories || []).map((cat: any) => (
             <button key={cat.id} onClick={() => setCategoryFilter(categoryFilter === cat.id ? '' : cat.id)}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all border', categoryFilter === cat.id ? 'text-white border-transparent' : 'text-white/40 hover:text-white/60 border-white/8')}
-              style={categoryFilter === cat.id ? { background: cat.color } : {}}>
+              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all border', categoryFilter === cat.id ? (cat.name === 'Soft Skills' || cat.name === 'Domain Knowledge' ? 'text-[#001133] border-transparent' : 'text-white border-transparent') : 'text-white/40 hover:text-white/60 border-white/8')}
+              style={categoryFilter === cat.id ? { background: CATEGORY_COLORS[cat.name] || cat.color } : {}}>
               {cat.name}
             </button>
           ))}
@@ -88,7 +88,7 @@ export default function SkillsPage() {
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([category, catSkills]) => {
-            const color = CATEGORY_COLORS[category] || '#a3ff29'
+            const color = CATEGORY_COLORS[category] || '#307FE2'
             return (
               <div key={category}>
                 <div className="flex items-center gap-2 mb-4">

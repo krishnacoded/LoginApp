@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 
 import { AuthProvider } from './store/auth.store'
+import { ThemeProvider } from './context/ThemeContext'
 
 import ProtectedRoute from './components/common/ProtectedRoute'
 
@@ -31,6 +32,7 @@ import SkillsPage from './pages/skills/SkillsPage'
 import LeavesPage from './pages/leaves/LeavesPage'
 import LeaveApprovalsPage from './pages/leaves/LeaveApprovalsPage'
 import DocumentsPage from './pages/documents/DocumentsPage'
+import VerificationApprovalsPage from './pages/verifications/VerificationApprovalsPage'
 
 // Attendance & Assets
 import AttendancePage from './pages/attendance/AttendancePage'
@@ -53,7 +55,8 @@ import NotFoundPage from './pages/errors/NotFoundPage'
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <ThemeProvider>
+        <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -83,7 +86,7 @@ export default function App() {
           <Route
             path="departments"
             element={
-              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']} permissions={['department.view']}>
                 <DepartmentsPage />
               </ProtectedRoute>
             }
@@ -91,7 +94,7 @@ export default function App() {
           <Route
             path="departments/:id"
             element={
-              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']} permissions={['department.view']}>
                 <DepartmentDetailsPage />
               </ProtectedRoute>
             }
@@ -105,8 +108,16 @@ export default function App() {
           <Route
             path="leaves/approvals"
             element={
-              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
+              <ProtectedRoute roles={['admin', 'hr', 'manager']} permissions={['leave.approve']}>
                 <LeaveApprovalsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="verifications/approvals"
+            element={
+              <ProtectedRoute roles={['admin', 'hr', 'manager']}>
+                <VerificationApprovalsPage />
               </ProtectedRoute>
             }
           />
@@ -124,7 +135,7 @@ export default function App() {
           <Route
             path="analytics"
             element={
-              <ProtectedRoute roles={['admin', 'hr']}>
+              <ProtectedRoute roles={['admin', 'hr']} permissions={['report.view']}>
                 <AnalyticsPage />
               </ProtectedRoute>
             }
@@ -134,7 +145,7 @@ export default function App() {
           <Route
             path="audit-logs"
             element={
-              <ProtectedRoute roles={['admin', 'hr']}>
+              <ProtectedRoute roles={['admin', 'hr']} permissions={['audit.view']}>
                 <AuditLogsPage />
               </ProtectedRoute>
             }
@@ -153,6 +164,7 @@ export default function App() {
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </ThemeProvider>
     </AuthProvider>
   )
 }

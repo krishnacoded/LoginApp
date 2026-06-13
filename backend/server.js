@@ -19,6 +19,10 @@ const { skillRouter, leaveRouter, dashboardRouter, notificationRouter, auditRout
 const attendanceRoutes = require('./routes/attendance.routes');
 const assetRoutes = require('./routes/asset.routes');
 const reportRoutes = require('./routes/report.routes');
+const roleRoutes = require('./routes/role.routes');
+const shiftRoutes = require('./routes/shift.routes');
+const regularizationRoutes = require('./routes/regularization.routes');
+const verificationRoutes = require('./routes/verification.routes');
 const { errorHandler, notFound } = require('./middleware/error');
 const logger = require('./config/logger');
 const { verifyMailConnection } = require('./services/email.service');
@@ -51,7 +55,7 @@ app.use('/api/', limiter);
 // Auth rate limit (stricter)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 100,
   message: { success: false, message: 'Too many login attempts, please try again later' },
 });
 
@@ -108,6 +112,10 @@ app.use(`${API_PREFIX}/search`, searchRouter);
 app.use(`${API_PREFIX}/attendance`, attendanceRoutes);
 app.use(`${API_PREFIX}/assets`, assetRoutes);
 app.use(`${API_PREFIX}/reports`, reportRoutes);
+app.use(`${API_PREFIX}/roles`, roleRoutes);
+app.use(`${API_PREFIX}/shifts`, shiftRoutes);
+app.use(`${API_PREFIX}/regularizations`, regularizationRoutes);
+app.use(`${API_PREFIX}/verifications`, verificationRoutes);
 
 // 404 handler
 app.use(notFound);

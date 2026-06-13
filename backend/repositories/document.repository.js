@@ -1,12 +1,14 @@
 const { query } = require('../config/database');
 
 class DocumentRepository {
-  async findAll({ employeeId, documentType, verified, search, limit = 20, offset = 0 } = {}) {
+  async findAll({ employeeId, documentType, verified, search, limit = 20, offset = 0, isCompanyPolicy } = {}) {
     const conditions = ['d.deleted_at IS NULL'];
     const params = [];
     let idx = 1;
 
-    if (employeeId) {
+    if (isCompanyPolicy === true || isCompanyPolicy === 'true') {
+      conditions.push('d.employee_id IS NULL');
+    } else if (employeeId) {
       conditions.push(`d.employee_id = $${idx++}`);
       params.push(employeeId);
     }

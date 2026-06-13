@@ -4,7 +4,9 @@ export interface User {
   id: string
   email: string
   role: UserRole | string
+  roles?: string[]
   permissions: string[]
+  resolvedPermissions?: string[]
 
   employee_id?: string
   employeeId?: string

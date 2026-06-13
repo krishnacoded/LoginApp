@@ -11,9 +11,9 @@ import Avatar from '../../components/Avatar/Avatar';
 import { formatRelativeDate, cn, debounce } from '../../utils';
 
 const ENTITY_COLORS: Record<string, string> = {
-  employee: '#a3ff29',
-  department: '#307FE2',
-  skill: '#21d978',
+  employee: '#307FE2',
+  department: '#003087',
+  skill: '#F2A900',
   leave: '#FFE264',
   auth: '#F2A900',
   document: '#94a3b8',
@@ -61,7 +61,7 @@ function ChangesDiff({ oldValues, newValues }: { oldValues: any; newValues: any 
                 <td className="py-2 pr-4 text-red-400 line-through max-w-[240px] truncate" title={oldStr}>
                   {oldStr || <span className="italic text-white/20">empty</span>}
                 </td>
-                <td className="py-2 text-lime-300 max-w-[240px] truncate" title={newStr}>
+                <td className="py-2 text-emerald-400 max-w-[240px] truncate" title={newStr}>
                   {newStr || <span className="italic text-white/20">empty</span>}
                 </td>
               </tr>
@@ -130,9 +130,9 @@ export default function AuditLogsPage() {
               style={
                 entityType === type
                   ? {
-                      background: `${ENTITY_COLORS[type] || 'linear-gradient(135deg, #a3ff29, #21d978)'}20`,
-                      borderColor: `${ENTITY_COLORS[type] || '#a3ff29'}40`,
-                      color: ENTITY_COLORS[type] || '#a3ff29',
+                      background: `${ENTITY_COLORS[type] || '#F2A900'}20`,
+                      borderColor: `${ENTITY_COLORS[type] || '#F2A900'}40`,
+                      color: ENTITY_COLORS[type] || '#F2A900',
                     }
                   : {}
               }
@@ -191,9 +191,9 @@ export default function AuditLogsPage() {
                         <span
                           className="text-[10px] px-2.5 py-0.5 rounded-full capitalize font-semibold border"
                           style={{
-                            background: `${ENTITY_COLORS[log.entity_type] || '#a3ff29'}12`,
-                            borderColor: `${ENTITY_COLORS[log.entity_type] || '#a3ff29'}32`,
-                            color: ENTITY_COLORS[log.entity_type] || '#a3ff29',
+                            background: `${ENTITY_COLORS[log.entity_type] || '#F2A900'}12`,
+                            borderColor: `${ENTITY_COLORS[log.entity_type] || '#F2A900'}32`,
+                            color: ENTITY_COLORS[log.entity_type] || '#F2A900',
                           }}
                         >
                           {log.entity_type}
@@ -227,12 +227,12 @@ export default function AuditLogsPage() {
                         {/* Device and IP Details */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-black/25 p-3.5 rounded-xl border border-white/5">
                           <div className="flex items-center gap-2.5 text-xs text-white/50">
-                            <Globe size={13} className="text-lime-300/60 flex-shrink-0" />
+                            <Globe size={13} className="text-primary/60 flex-shrink-0" />
                             <span className="font-medium">IP Address:</span>
                             <span className="font-mono text-white/70">{log.ip_address || 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-2.5 text-xs text-white/50 min-w-0">
-                            <Laptop size={13} className="text-lime-300/60 flex-shrink-0" />
+                            <Laptop size={13} className="text-primary/60 flex-shrink-0" />
                             <span className="font-medium">User Agent:</span>
                             <span className="truncate text-white/70" title={log.user_agent}>
                               {log.user_agent || 'N/A'}
@@ -243,14 +243,14 @@ export default function AuditLogsPage() {
                         {/* Resource details */}
                         <div className="text-xs text-white/40 flex items-center gap-2 flex-wrap">
                           <span>Target Resource ID:</span>
-                          <span className="font-mono text-lime-200/80 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                          <span className="font-mono text-primary/80 bg-white/5 px-2 py-0.5 rounded border border-white/5">
                             {log.entity_id || 'N/A'}
                           </span>
                           {log.employee_id && (
                             <>
                               <span className="mx-1.5 text-white/10">|</span>
                               <span>Target Employee ID:</span>
-                              <span className="font-mono text-lime-200/80 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                              <span className="font-mono text-primary/80 bg-white/5 px-2 py-0.5 rounded border border-white/5">
                                 {log.employee_id}
                               </span>
                             </>

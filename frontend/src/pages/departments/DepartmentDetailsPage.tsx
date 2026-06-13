@@ -98,6 +98,49 @@ export default function DepartmentDetailsPage() {
                   <p className="text-xs text-white/35">{dept.headDesignation}</p>
                 </div>
               </div>
+              {(dept.headEmail || dept.headPhone) && (
+                <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5 text-xs">
+                  {dept.headEmail && (
+                    <div className="flex items-center justify-between gap-2 text-white/50">
+                      <span className="text-white/35">Email:</span>
+                      <a href={`mailto:${dept.headEmail}`} className="text-lime-300 hover:underline truncate max-w-[150px]">{dept.headEmail}</a>
+                    </div>
+                  )}
+                  {dept.headPhone && (
+                    <div className="flex items-center justify-between gap-2 text-white/50">
+                      <span className="text-white/35">Phone:</span>
+                      <span className="text-white/70 font-mono">{dept.headPhone}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {(dept.contactPhone || dept.contactEmail) && (
+            <div className="glass-card rounded-2xl p-4">
+              <p className="text-xs text-white/35 mb-3">Department Contact Info</p>
+              <div className="space-y-1.5 text-xs">
+                {dept.contactPhone && (
+                  <div className="flex items-center justify-between gap-2 text-white/50">
+                    <span className="text-white/35">Phone/Ext:</span>
+                    <span className="text-white/70 font-mono">{dept.contactPhone}</span>
+                  </div>
+                )}
+                {dept.contactEmail && (
+                  <div className="flex items-center justify-between gap-2 text-white/50">
+                    <span className="text-white/35">Email:</span>
+                    <a href={`mailto:${dept.contactEmail}`} className="text-lime-300 hover:underline truncate max-w-[150px]">{dept.contactEmail}</a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {dept.goals && (
+            <div className="glass-card rounded-2xl p-4">
+              <p className="text-xs text-white/35 mb-2">Department Goals</p>
+              <p className="text-xs text-white/70 whitespace-pre-wrap leading-relaxed">{dept.goals}</p>
             </div>
           )}
 
@@ -118,7 +161,7 @@ export default function DepartmentDetailsPage() {
           {dept.hireTrend && dept.hireTrend.length > 0 && (
             <div className="glass-card rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-3">
-                <TrendingUp size={13} className="text-lime-300" />
+                <TrendingUp size={13} className="text-amber-400" />
                 <p className="text-xs text-white/35">Hiring Trend (12 months)</p>
               </div>
               <div className="h-[100px] w-full relative">
@@ -126,8 +169,8 @@ export default function DepartmentDetailsPage() {
                   <BarChart data={dept.hireTrend} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                     <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9 }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ background: 'rgba(10,15,30,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }} />
-                    <Bar dataKey="count" fill="#a3ff29" radius={[3, 3, 0, 0]} />
+                    <Tooltip contentStyle={{ background: 'var(--glass-card-bg)', border: '1px solid var(--border-layout-inner)', borderRadius: 8, fontSize: 11, color: 'var(--text-color-base)' }} itemStyle={{ color: 'var(--text-color-base)' }} labelStyle={{ color: 'var(--text-color-base)' }} />
+                    <Bar dataKey="count" fill="#307FE2" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

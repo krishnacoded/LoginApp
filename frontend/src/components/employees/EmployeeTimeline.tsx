@@ -13,11 +13,11 @@ const EVENT_ICONS: Record<string, any> = {
 }
 
 const EVENT_COLORS: Record<string, string> = {
-  joined: '#059669',
-  promotion: '#D97706',
-  department_change: '#a3ff29',
-  document_added: '#0891B2',
-  default: '#21d978',
+  joined: '#38BDF8',
+  promotion: '#FFE264',
+  department_change: '#307FE2',
+  document_added: '#94a3b8',
+  default: '#F2A900',
 }
 
 interface EmployeeTimelineProps {

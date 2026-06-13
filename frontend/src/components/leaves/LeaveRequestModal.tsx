@@ -99,7 +99,7 @@ export default function LeaveRequestModal({ onClose, onSuccess }: LeaveRequestMo
           <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 sticky top-0"
             style={{ background: 'rgba(8,12,26,0.99)' }}>
             <div className="flex items-center gap-2">
-              <Calendar size={18} className="text-lime-300" />
+              <Calendar size={18} className="text-primary" />
               <h2 className="font-semibold text-white/90">Apply for Leave</h2>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
@@ -114,7 +114,7 @@ export default function LeaveRequestModal({ onClose, onSuccess }: LeaveRequestMo
                 {(leaveTypes || []).map((type) => (
                   <label key={type.id} className={cn(
                     'flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all',
-                    selectedTypeId === type.id ? 'border-lime-400/50 bg-lime-400/8' : 'border-white/6 hover:border-white/12',
+                    selectedTypeId === type.id ? 'border-primary/50 bg-primary/8' : 'border-white/6 hover:border-white/12',
                   )}>
                     <input {...register('leaveTypeId')} type="radio" value={type.id} className="sr-only" />
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: type.color }} />
@@ -152,7 +152,7 @@ export default function LeaveRequestModal({ onClose, onSuccess }: LeaveRequestMo
             </div>
 
             <div className="flex items-center gap-3">
-              <input {...register('isHalfDay')} type="checkbox" id="halfDay" className="w-4 h-4 rounded accent-lime-400" />
+              <input {...register('isHalfDay')} type="checkbox" id="halfDay" className="w-4 h-4 rounded accent-primary" />
               <label htmlFor="halfDay" className="text-sm text-white/50 cursor-pointer">Half day</label>
               {isHalfDay && (
                 <select {...register('halfDayType')} className="input-field ml-2 flex-1 text-sm">
@@ -165,10 +165,10 @@ export default function LeaveRequestModal({ onClose, onSuccess }: LeaveRequestMo
             {days > 0 && (
               <div className={cn(
                 'flex items-center justify-between px-4 py-2.5 rounded-xl text-sm',
-                available !== null && days > available ? 'bg-red-500/10 border border-red-500/30' : 'bg-lime-400/10 border border-lime-400/20',
+                available !== null && days > available ? 'bg-red-500/10 border border-red-500/30' : 'bg-primary/10 border border-primary/20',
               )}>
                 <span className="text-white/50">Total working days</span>
-                <span className={cn('font-bold', available !== null && days > available ? 'text-red-400' : 'text-lime-300')}>
+                <span className={cn('font-bold', available !== null && days > available ? 'text-red-400' : 'text-primary')}>
                   {days} day{days !== 1 ? 's' : ''}
                   {available !== null && days > available && ' (exceeds balance)'}
                 </span>

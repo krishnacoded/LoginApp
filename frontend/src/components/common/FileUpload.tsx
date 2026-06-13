@@ -35,7 +35,7 @@ export default function FileUpload({
         {...getRootProps()}
         className={cn(
           'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200',
-          isDragActive && !isDragReject && 'border-lime-400/70 bg-lime-400/5',
+          isDragActive && !isDragReject && 'border-secondary/70 bg-secondary/5',
           isDragReject && 'border-red-500/70 bg-red-500/5',
           !isDragActive && 'border-white/10 hover:border-white/20 hover:bg-white/2',
         )}
@@ -43,8 +43,8 @@ export default function FileUpload({
         <input {...getInputProps()} />
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center"
-            style={{ background: isDragActive ? 'rgba(79,70,229,0.2)' : 'rgba(255,255,255,0.04)' }}>
-            <Upload size={20} className={isDragActive ? 'text-lime-300' : 'text-white/30'} />
+            style={{ background: isDragActive ? 'rgba(48,127,226,0.2)' : 'rgba(255,255,255,0.04)' }}>
+            <Upload size={20} className={isDragActive ? 'text-secondary' : 'text-white/30'} />
           </div>
           <div>
             <p className="text-sm font-medium text-white/60">

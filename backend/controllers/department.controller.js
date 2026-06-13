@@ -55,9 +55,11 @@ class DepartmentService {
     const { rows } = await query(
       `SELECT d.*, e.first_name || ' ' || e.last_name as head_name,
               e.id as head_employee_id, e.designation as head_designation,
-              e.profile_picture_url as head_picture, e.employee_code as head_code
+              e.profile_picture_url as head_picture, e.employee_code as head_code,
+              e.phone as head_phone, COALESCE(u.email, e.personal_email) as head_email
        FROM departments d
        LEFT JOIN employees e ON d.head_employee_id = e.id
+       LEFT JOIN users u ON e.user_id = u.id
        WHERE d.id = $1 AND d.deleted_at IS NULL`,
       [id]
     );
@@ -107,11 +109,12 @@ class DepartmentService {
 
   async create(data, userId) {
     const { rows } = await query(
-      `INSERT INTO departments (name, code, description, head_employee_id, budget, location, parent_department_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      `INSERT INTO departments (name, code, description, head_employee_id, budget, location, parent_department_id, goals, contact_phone, contact_email)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [data.name, data.code.toUpperCase(), data.description || null,
        data.headEmployeeId || null, data.budget || null, data.location || null,
-       data.parentDepartmentId || null]
+       data.parentDepartmentId || null, data.goals || null, data.contactPhone || null,
+       data.contactEmail || null]
     );
     await auditLog(userId, 'CREATE_DEPARTMENT', 'department', rows[0].id, null, rows[0]);
     return rows[0];
@@ -127,6 +130,8 @@ class DepartmentService {
       headEmployeeId: 'head_employee_id', budget: 'budget',
       location: 'location', isActive: 'is_active',
       parentDepartmentId: 'parent_department_id',
+      goals: 'goals', contactPhone: 'contact_phone',
+      contactEmail: 'contact_email',
     };
 
     for (const [key, col] of Object.entries(map)) {

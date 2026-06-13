@@ -26,7 +26,7 @@ export default function SearchInput({
         className="input-field pl-9 pr-8"
       />
       {isLoading && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-lime-400/30 border-t-lime-400 rounded-full animate-spin" />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       )}
       {!isLoading && value && (
         <button

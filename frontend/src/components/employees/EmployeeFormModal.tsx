@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react'
@@ -9,24 +9,39 @@ import { toast } from 'sonner'
 import { employeeService, departmentService, skillService } from '../../api'
 import { cn } from '../../utils'
 import { Employee } from '../../types'
+import { useAuth } from '../../store/auth.store'
 
 const step1Schema = z.object({
   firstName: z.string().min(2, 'First name required'),
   lastName: z.string().min(2, 'Last name required'),
-  dateOfBirth: z.string().optional(),
-  gender: z.string().optional(),
-  phone: z.string().optional(),
-  personalEmail: z.string().email().optional().or(z.literal('')),
+  dateOfBirth: z.string().optional().nullable(),
+  gender: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  personalEmail: z.string().email().optional().or(z.literal('')).nullable(),
+  linkedinUrl: z.string().url().optional().or(z.literal('')).nullable(),
+  bio: z.string().optional().nullable(),
+  address: z.object({
+    street: z.string().optional().or(z.literal('')),
+    city: z.string().optional().or(z.literal('')),
+    state: z.string().optional().or(z.literal('')),
+    zip: z.string().optional().or(z.literal('')),
+    country: z.string().optional().or(z.literal('')),
+  }).optional(),
+  emergencyContact: z.object({
+    name: z.string().optional().or(z.literal('')),
+    relationship: z.string().optional().or(z.literal('')),
+    phone: z.string().optional().or(z.literal('')),
+  }).optional(),
 })
 
 const step2Schema = z.object({
-  departmentId: z.string().optional(),
-  designation: z.string().optional(),
-  employmentType: z.string().optional(),
-  employmentStatus: z.string().optional(),
-  joiningDate: z.string().optional(),
-  managerId: z.string().optional(),
-  salary: z.string().optional(),
+  departmentId: z.string().optional().nullable(),
+  designation: z.string().optional().nullable(),
+  employmentType: z.string().optional().nullable(),
+  employmentStatus: z.string().optional().nullable(),
+  joiningDate: z.string().optional().nullable(),
+  managerId: z.string().optional().nullable(),
+  salary: z.string().optional().nullable(),
 })
 
 const STEPS = ['Personal Info', 'Professional', 'Skills', 'Review']
@@ -39,6 +54,10 @@ interface EmployeeFormModalProps {
 
 function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormModalProps) {
   const isEdit = !!employee
+  const { user, hasRole } = useAuth()
+  const isHrOrAdmin = hasRole(['admin', 'hr'])
+  const isSelfUpdate = isEdit && !isHrOrAdmin && (user?.employeeId === employee?.id || user?.employee_id === employee?.id);
+
   const [step, setStep] = useState(0)
   const [formData, setFormData] = useState<any>(employee ? {
     firstName: employee.firstName,
@@ -47,6 +66,10 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
     gender: employee.gender || '',
     phone: employee.phone || '',
     personalEmail: employee.personalEmail || '',
+    linkedinUrl: employee.linkedinUrl || '',
+    bio: employee.bio || '',
+    address: employee.address || { street: '', city: '', state: '', zip: '', country: '' },
+    emergencyContact: employee.emergencyContact || { name: '', relationship: '', phone: '' },
     departmentId: employee.departmentId || '',
     designation: employee.designation || '',
     employmentType: employee.employmentType || 'full_time',
@@ -57,6 +80,8 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
     skills: employee.skills?.map(s => ({ skillId: s.skillId, proficiencyLevel: s.proficiencyLevel })) || [],
   } : {
     firstName: '', lastName: '', dateOfBirth: '', gender: '', phone: '', personalEmail: '',
+    linkedinUrl: '', bio: '', address: { street: '', city: '', state: '', zip: '', country: '' },
+    emergencyContact: { name: '', relationship: '', phone: '' },
     departmentId: '', designation: '', employmentType: 'full_time', employmentStatus: 'active',
     joiningDate: '', managerId: '', salary: '', skills: [],
   })
@@ -65,17 +90,20 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
     queryKey: ['departments-select'],
     queryFn: () => departmentService.getAll({ limit: 100 }),
     select: d => d.data,
+    enabled: !isSelfUpdate
   })
 
   const { data: employees } = useQuery({
     queryKey: ['employees-select'],
     queryFn: () => employeeService.getAll({ limit: 100, status: 'active' }),
     select: d => d.data,
+    enabled: !isSelfUpdate
   })
 
   const { data: skills } = useQuery({
     queryKey: ['skills-select'],
     queryFn: () => skillService.getAll(),
+    enabled: !isSelfUpdate
   })
 
   const mutation = useMutation({
@@ -100,20 +128,32 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
   const step1Form = useForm({ resolver: zodResolver(step1Schema), defaultValues: formData })
   const step2Form = useForm({ resolver: zodResolver(step2Schema), defaultValues: formData })
 
+  const stepsToUse = isSelfUpdate ? ['Personal Info', 'Review'] : STEPS;
+
   const nextStep = async () => {
     if (step === 0) {
       const valid = await step1Form.trigger()
       if (!valid) return
       const vals = step1Form.getValues()
-      setFormData((p: any) => ({
-        ...p,
+      const newPersonalData = {
+        ...formData,
         firstName: vals.firstName,
         lastName: vals.lastName,
         dateOfBirth: vals.dateOfBirth,
         gender: vals.gender,
         phone: vals.phone,
         personalEmail: vals.personalEmail,
-      }))
+        linkedinUrl: vals.linkedinUrl,
+        bio: vals.bio,
+        address: vals.address,
+        emergencyContact: vals.emergencyContact,
+      }
+      setFormData(newPersonalData)
+      if (isSelfUpdate) {
+        setStep(3) // Jump directly to Review step
+      } else {
+        setStep(1)
+      }
     } else if (step === 1) {
       const valid = await step2Form.trigger()
       if (!valid) return
@@ -128,12 +168,18 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
         managerId: vals.managerId,
         salary: vals.salary,
       }))
+      setStep(2)
+    } else if (step === 2) {
+      setStep(3)
     }
-    setStep(s => s + 1)
   }
 
   const prevStep = () => {
-    if (step === 1) {
+    if (step === 3 && isSelfUpdate) {
+      setStep(0)
+    } else if (step === 3) {
+      setStep(2)
+    } else if (step === 2) {
       const vals = step2Form.getValues()
       setFormData((p: any) => ({
         ...p,
@@ -145,8 +191,10 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
         managerId: vals.managerId,
         salary: vals.salary,
       }))
+      setStep(1)
+    } else {
+      setStep(0)
     }
-    setStep(s => s - 1)
   }
 
   const handleSubmit = () => {
@@ -197,14 +245,16 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
         className="fixed inset-0 flex items-center justify-center z-50 p-4"
       >
         <div className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-          style={{ background: 'rgba(8,12,26,0.99)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--glass-card-bg)', border: '1px solid var(--glass-card-border)' }}
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 flex-shrink-0">
             <div>
-              <h2 className="font-semibold text-white/90">{isEdit ? 'Edit Employee' : 'New Employee'}</h2>
-              <p className="text-xs text-white/35 mt-0.5">Step {step + 1} of {STEPS.length}</p>
+              <h2 className="font-semibold text-white/90">{isEdit ? 'Edit Profile' : 'New Employee'}</h2>
+              <p className="text-xs text-white/35 mt-0.5">
+                Step {isSelfUpdate && step === 3 ? 2 : step + 1} of {stepsToUse.length}
+              </p>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
               <X size={18} className="text-white/40" />
@@ -213,34 +263,39 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
 
           {/* Step indicators */}
           <div className="flex items-center gap-0 px-6 py-4 border-b border-white/5 flex-shrink-0">
-            {STEPS.map((label, i) => (
-              <React.Fragment key={label}>
-                <div className="flex items-center gap-2 flex-1">
-                  <div className={cn(
-                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all',
-                    i < step && 'bg-emerald-500 text-white',
-                    i === step && 'text-white',
-                    i > step && 'text-white/25',
-                  )}
-                    style={i === step ? { background: 'linear-gradient(135deg, #a3ff29, #21d978)' } : i < step ? {} : { background: 'rgba(255,255,255,0.06)' }}>
-                    {i < step ? <Check size={13} /> : i + 1}
+            {stepsToUse.map((label, idx) => {
+              const actualStep = isSelfUpdate && idx === 1 ? 3 : idx
+              const isCompleted = step > actualStep
+              const isActive = step === actualStep
+              return (
+                <React.Fragment key={label}>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all',
+                      isCompleted && 'bg-emerald-500 text-white',
+                      isActive && 'text-midnight font-bold',
+                      !isCompleted && !isActive && 'text-white/25',
+                    )}
+                      style={isActive ? { background: 'linear-gradient(135deg, #FFE264, #F2A900)' } : isCompleted ? {} : { background: 'rgba(255,255,255,0.06)' }}>
+                      {isCompleted ? <Check size={13} /> : idx + 1}
+                    </div>
+                    <span className={cn('text-xs font-medium hidden sm:block', isActive ? 'text-white/70' : 'text-white/25')}>
+                      {label}
+                    </span>
                   </div>
-                  <span className={cn('text-xs font-medium hidden sm:block', i === step ? 'text-white/70' : 'text-white/25')}>
-                    {label}
-                  </span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div className={cn('h-px flex-1 mx-2', i < step ? 'bg-emerald-500/50' : 'bg-white/8')} />
-                )}
-              </React.Fragment>
-            ))}
+                  {idx < stepsToUse.length - 1 && (
+                    <div className={cn('h-px flex-1 mx-2', isCompleted ? 'bg-emerald-500/50' : 'bg-white/8')} />
+                  )}
+                </React.Fragment>
+              )
+            })}
           </div>
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <AnimatePresence mode="wait">
               {step === 0 && (
-                <StepPersonal key="step0" form={step1Form} />
+                <StepPersonal key="step0" form={step1Form} isSelfUpdate={isSelfUpdate} />
               )}
               {step === 1 && (
                 <StepProfessional key="step1" form={step2Form} departments={departments || []} employees={employees || []} />
@@ -264,7 +319,7 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
               {step === 0 ? 'Cancel' : 'Back'}
             </button>
 
-            {step < STEPS.length - 1 ? (
+            {((isSelfUpdate && step === 0) || (!isSelfUpdate && step < 3)) ? (
               <button onClick={nextStep} className="btn-primary">
                 Continue
                 <ChevronRight size={16} />
@@ -278,7 +333,7 @@ function EmployeeFormModalInner({ employee, onClose, onSuccess }: EmployeeFormMo
                 {mutation.isPending ? (
                   <><Loader2 size={16} className="animate-spin" /> Saving...</>
                 ) : (
-                  <><Check size={16} /> {isEdit ? 'Update Employee' : 'Create Employee'}</>
+                  <><Check size={16} /> {isEdit ? 'Update Details' : 'Create Employee'}</>
                 )}
               </button>
             )}
@@ -314,9 +369,9 @@ export default function EmployeeFormModal({ employee, onClose, onSuccess }: Empl
           className="fixed inset-0 flex items-center justify-center z-50 p-4"
         >
           <div className="w-full max-w-2xl h-[400px] flex flex-col items-center justify-center rounded-2xl overflow-hidden shadow-2xl"
-            style={{ background: 'rgba(8,12,26,0.99)', border: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ background: 'var(--glass-card-bg)', border: '1px solid var(--glass-card-border)' }}
           >
-            <Loader2 className="animate-spin text-lime-400 mb-3" size={32} />
+            <Loader2 className="animate-spin text-primary mb-3" size={32} />
             <p className="text-sm text-white/40">Loading employee details...</p>
           </div>
         </motion.div>
@@ -343,35 +398,70 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   )
 }
 
-function StepPersonal({ form }: { form: any }) {
+function StepPersonal({ form, isSelfUpdate }: { form: any; isSelfUpdate: boolean }) {
   const { register, formState: { errors } } = form
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
       <div className="grid grid-cols-2 gap-4">
         <Field label="First Name *" error={errors.firstName?.message as string}>
-          <input {...register('firstName')} placeholder="John" className={cn('input-field', errors.firstName && 'border-red-500/50')} />
+          <input {...register('firstName')} disabled={isSelfUpdate} placeholder="John" className={cn('input-field disabled:opacity-50', errors.firstName && 'border-red-500/50')} />
         </Field>
         <Field label="Last Name *" error={errors.lastName?.message as string}>
-          <input {...register('lastName')} placeholder="Doe" className={cn('input-field', errors.lastName && 'border-red-500/50')} />
+          <input {...register('lastName')} disabled={isSelfUpdate} placeholder="Doe" className={cn('input-field disabled:opacity-50', errors.lastName && 'border-red-500/50')} />
         </Field>
         <Field label="Date of Birth">
-          <input {...register('dateOfBirth')} type="date" className="input-field" />
+          <input {...register('dateOfBirth')} type="date" disabled={isSelfUpdate} className="input-field disabled:opacity-50" />
         </Field>
         <Field label="Gender">
-          <select {...register('gender')} className="input-field">
+          <select {...register('gender')} disabled={isSelfUpdate} className="input-field disabled:opacity-50">
             <option value="">Select gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
+            <option value="non_binary">Non-binary</option>
             <option value="prefer_not_to_say">Prefer not to say</option>
           </select>
         </Field>
-        <Field label="Phone">
+        <Field label="Phone" error={errors.phone?.message as string}>
           <input {...register('phone')} placeholder="+1 (555) 000-0000" className="input-field" />
         </Field>
-        <Field label="Personal Email">
+        <Field label="Personal Email" error={errors.personalEmail?.message as string}>
           <input {...register('personalEmail')} type="email" placeholder="personal@email.com" className="input-field" />
         </Field>
+        <div className="col-span-2">
+          <Field label="LinkedIn Profile URL" error={errors.linkedinUrl?.message as string}>
+            <input {...register('linkedinUrl')} placeholder="https://linkedin.com/in/username" className="input-field" />
+          </Field>
+        </div>
+        <div className="col-span-2">
+          <Field label="Personal Bio" error={errors.bio?.message as string}>
+            <textarea {...register('bio')} rows={2} placeholder="Share a short bio..." className="input-field resize-none" />
+          </Field>
+        </div>
+
+        {/* Address Fields */}
+        <div className="col-span-2 border-t border-white/5 pt-3 mt-2">
+          <h4 className="text-xs font-semibold text-white/50 mb-2">Address details</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <input {...register('address.street')} placeholder="Street Address" className="input-field" />
+            </div>
+            <input {...register('address.city')} placeholder="City" className="input-field" />
+            <input {...register('address.state')} placeholder="State / Province" className="input-field" />
+            <input {...register('address.zip')} placeholder="ZIP / Postal Code" className="input-field" />
+            <input {...register('address.country')} placeholder="Country" className="input-field" />
+          </div>
+        </div>
+
+        {/* Emergency Contact */}
+        <div className="col-span-2 border-t border-white/5 pt-3 mt-2">
+          <h4 className="text-xs font-semibold text-white/50 mb-2">Emergency Contact</h4>
+          <div className="grid grid-cols-3 gap-3">
+            <input {...register('emergencyContact.name')} placeholder="Contact Name" className="input-field" />
+            <input {...register('emergencyContact.relationship')} placeholder="Relationship (e.g. Spouse)" className="input-field" />
+            <input {...register('emergencyContact.phone')} placeholder="Phone Number" className="input-field" />
+          </div>
+        </div>
       </div>
     </motion.div>
   )
@@ -439,11 +529,11 @@ function StepSkills({ allSkills, selected, onToggle, onLevelChange }: any) {
           return (
             <div key={skill.id} className={cn(
               'p-3 rounded-xl cursor-pointer border transition-all',
-              sel ? 'border-lime-400/50 bg-lime-400/10' : 'border-white/6 hover:border-white/12 hover:bg-white/2',
+              sel ? 'border-primary/50 bg-primary/10' : 'border-white/6 hover:border-white/12 hover:bg-white/2',
             )} onClick={() => onToggle(skill.id)}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm font-medium text-white/70">{skill.name}</p>
-                {sel && <Check size={13} className="text-lime-300" />}
+                {sel && <Check size={13} className="text-primary" />}
               </div>
               <p className="text-xs text-white/30">{skill.category_name}</p>
               {sel && (
@@ -451,7 +541,7 @@ function StepSkills({ allSkills, selected, onToggle, onLevelChange }: any) {
                   {[1, 2, 3, 4, 5].map(lvl => (
                     <button key={lvl} onClick={() => onLevelChange(skill.id, lvl)}
                       className={cn('w-5 h-5 rounded text-xs font-bold transition-all',
-                        sel.proficiencyLevel >= lvl ? 'bg-lime-400 text-white' : 'bg-white/6 text-white/25')}
+                        sel.proficiencyLevel >= lvl ? 'bg-primary text-midnight font-bold' : 'bg-white/6 text-white/25')}
                       title={LEVELS[lvl - 1]}>
                       {lvl}
                     </button>
@@ -463,7 +553,7 @@ function StepSkills({ allSkills, selected, onToggle, onLevelChange }: any) {
         })}
       </div>
       {selected.length > 0 && (
-        <p className="text-xs text-lime-300">{selected.length} skill{selected.length !== 1 ? 's' : ''} selected</p>
+        <p className="text-xs text-primary">{selected.length} skill{selected.length !== 1 ? 's' : ''} selected</p>
       )}
     </motion.div>
   )
@@ -475,6 +565,11 @@ function StepReview({ data, departments }: { data: any; departments: any[] }) {
     ['Name', `${data.firstName} ${data.lastName}`],
     ['Gender', data.gender],
     ['Phone', data.phone],
+    ['Personal Email', data.personalEmail],
+    ['LinkedIn URL', data.linkedinUrl],
+    ['Bio', data.bio],
+    ['Address', data.address?.street ? `${data.address.street}, ${data.address.city}` : null],
+    ['Emergency Contact', data.emergencyContact?.name ? `${data.emergencyContact.name} (${data.emergencyContact.relationship})` : null],
     ['Department', dept?.name],
     ['Designation', data.designation],
     ['Employment Type', data.employmentType],
@@ -492,7 +587,7 @@ function StepReview({ data, departments }: { data: any; departments: any[] }) {
             i !== rows.length - 1 && 'border-b border-white/5',
           )}>
             <span className="text-white/40">{label}</span>
-            <span className="text-white/75 font-medium capitalize">{value as string}</span>
+            <span className="text-white/75 font-medium capitalize truncate max-w-xs">{value as string}</span>
           </div>
         ))}
       </div>

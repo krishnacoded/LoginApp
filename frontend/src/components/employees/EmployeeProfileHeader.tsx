@@ -52,12 +52,12 @@ export default function EmployeeProfileHeader({ employee, canEdit, onEdit, onRef
   return (
     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl overflow-hidden">
       {/* Banner */}
-      <div className="h-28 relative" style={{ background: 'linear-gradient(135deg, #0f8f55 0%, #a3ff29 50%, #21d978 100%)' }}>
+      <div className="h-28 relative" style={{ background: 'radial-gradient(circle at 80% 20%, rgba(242, 169, 0, 0.2), transparent), linear-gradient(135deg, #00205B 0%, #003087 50%, #307FE2 100%)' }}>
         <div className="absolute inset-0 opacity-20"
           style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 80%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
       </div>
 
-      <div className="px-6 pb-6">
+      <div className="px-6 pb-6 relative z-10">
         <div className="flex items-end justify-between -mt-10 mb-4">
           <div className="relative group cursor-pointer" onClick={() => canUploadPhoto && fileInputRef.current?.click()}>
             <Avatar
@@ -90,6 +90,9 @@ export default function EmployeeProfileHeader({ employee, canEdit, onEdit, onRef
           </div>
 
           <div className="flex items-center gap-2 pb-1">
+            <button onClick={() => navigate('/dashboard')} className="btn-secondary text-sm">
+              Dashboard
+            </button>
             <button onClick={() => navigate(-1)} className="btn-secondary text-sm">
               <ArrowLeft size={14} />
               Back
@@ -111,7 +114,7 @@ export default function EmployeeProfileHeader({ employee, canEdit, onEdit, onRef
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-white/50">{employee.designation || 'No designation'}</span>
               <span className="text-white/20">·</span>
-              <span className="text-xs font-mono text-lime-300">{employee.employeeCode}</span>
+              <span className="text-xs font-mono text-primary">{employee.employeeCode}</span>
             </div>
           </div>
 

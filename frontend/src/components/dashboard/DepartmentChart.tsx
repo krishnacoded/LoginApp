@@ -1,7 +1,7 @@
 import { Pie, PieChart, ResponsiveContainer, Cell, Tooltip } from 'recharts';
 import { Building2 } from 'lucide-react';
 
-const COLORS = ['#a3ff29', '#21d978', '#6ee7b7', '#f4fdd7', '#60a5fa', '#f59e0b'];
+const COLORS = ['#307FE2', '#00205B', '#F2A900', '#003087', '#FFE264', '#60a5fa'];
 
 interface DepartmentPoint {
   id?: string;
@@ -27,7 +27,7 @@ export default function DepartmentChart({ data = [] }: { data?: DepartmentPoint[
           <h2 className="text-sm font-semibold text-white/88">Department Mix</h2>
           <p className="mt-1 text-xs text-white/34">Headcount by function</p>
         </div>
-        <Building2 size={17} className="text-lime-300" />
+        <Building2 size={17} className="text-amber-400" />
       </div>
 
       <div className="grid grid-cols-[128px_1fr] items-center gap-4">
@@ -39,7 +39,7 @@ export default function DepartmentChart({ data = [] }: { data?: DepartmentPoint[
                 <Cell key={index} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip contentStyle={{ background: '#111512', border: '1px solid rgba(163,255,41,.16)', borderRadius: 8 }} />
+            <Tooltip contentStyle={{ background: 'var(--glass-card-bg)', border: '1px solid var(--border-layout-inner)', borderRadius: 8, color: 'var(--text-color-base)' }} itemStyle={{ color: 'var(--text-color-base)' }} labelStyle={{ color: 'var(--text-color-base)' }} />
           </PieChart>
         </ResponsiveContainer>
       </div>

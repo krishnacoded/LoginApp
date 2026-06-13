@@ -6,12 +6,12 @@ import { ArrowLeft, Users } from 'lucide-react'
 export default function NotFoundPage() {
   const navigate = useNavigate()
   return (
-    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6 text-foreground" style={{ background: 'var(--bg-app-gradient)' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #a3ff29, #21d978)' }}>
-            <Users size={20} className="text-white" />
+            style={{ background: 'linear-gradient(135deg, #FFE264, #F2A900)' }}>
+            <Users size={20} className="text-[#001133]" />
           </div>
           <span className="text-xl font-bold gradient-text">PeopleFlow</span>
         </div>

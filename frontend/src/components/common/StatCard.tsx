@@ -17,7 +17,7 @@ interface StatCardProps {
 }
 
 export default function StatCard({
-  title, value, icon: Icon, color = '#a3ff29',
+  title, value, icon: Icon, color = '#307FE2',
   subtitle, trend, trendValue, trendLabel, index = 0, className,
 }: StatCardProps) {
   return (

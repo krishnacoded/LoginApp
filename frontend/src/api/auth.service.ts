@@ -16,7 +16,9 @@ export interface User {
   id: string;
   email: string;
   role: string;
+  roles?: string[];
   permissions: string[];
+  resolvedPermissions?: string[];
 
   employee_id?: string;
   employeeId?: string;
@@ -122,6 +124,11 @@ export const authService = {
     );
 
     return response.data.data;
+  },
+
+  async updateTheme(theme: string) {
+    const response = await api.put('/auth/theme', { theme });
+    return response.data;
   },
 
   async changePassword(

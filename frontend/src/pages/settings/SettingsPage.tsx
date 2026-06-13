@@ -11,11 +11,12 @@ import { authService } from '../../api/auth.service'
 import { employeeService } from '../../api'
 import Avatar from '../../components/Avatar/Avatar'
 import { cn } from '../../utils'
+import { useTheme } from '../../context/ThemeContext'
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'security', label: 'Security', icon: Lock },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
 ]
 
 const passwordSchema = z.object({
@@ -26,6 +27,7 @@ const passwordSchema = z.object({
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState('profile')
 
   const pwForm = useForm({ resolver: zodResolver(passwordSchema) })
@@ -59,8 +61,8 @@ export default function SettingsPage() {
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={cn('w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left',
-                activeTab === tab.id ? 'text-lime-200' : 'text-white/40 hover:text-white/60 hover:bg-white/3')}
-              style={activeTab === tab.id ? { background: 'rgba(79,70,229,0.15)' } : {}}>
+                activeTab === tab.id ? '' : 'text-white/40 hover:text-white/60 hover:bg-white/3')}
+              style={activeTab === tab.id ? { background: 'var(--sidebar-hover-bg)', color: 'var(--sidebar-hover-text)' } : {}}>
               <tab.icon size={16} />
               {tab.label}
             </button>
@@ -139,27 +141,66 @@ export default function SettingsPage() {
             </motion.div>
           )}
 
-          {activeTab === 'notifications' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-2xl p-6 space-y-4">
-              <h2 className="font-semibold text-white/80">Notification Preferences</h2>
-              {[
-                { label: 'Leave approved/rejected', desc: 'When your leave requests are actioned' },
-                { label: 'New team member', desc: 'When someone joins your department' },
-                { label: 'Document expiry', desc: 'Reminder when documents are about to expire' },
-              ].map(({ label, desc }) => (
-                <div key={label} className="flex items-center justify-between p-4 rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <div>
-                    <p className="text-sm font-medium text-white/70">{label}</p>
-                    <p className="text-xs text-white/30 mt-0.5">{desc}</p>
+
+
+          {activeTab === 'appearance' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-2xl p-6 space-y-6">
+              <div>
+                <h2 className="font-semibold text-white/85">Appearance</h2>
+                <p className="text-xs text-white/35 mt-1">Select your visual theme preference. The change will apply immediately.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* PeopleFlow Midnight */}
+                <button
+                  onClick={() => setTheme('PeopleFlow Midnight')}
+                  className={cn(
+                    'p-5 rounded-2xl text-left border transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-40',
+                    theme === 'PeopleFlow Midnight' ? 'border-amber-400 shadow-lg glow' : 'border-white/5 hover:border-white/20'
+                  )}
+                  style={{ background: 'linear-gradient(135deg, #00205B 0%, #001133 100%)' }}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm font-semibold text-white">PeopleFlow Midnight</span>
+                    {theme === 'PeopleFlow Midnight' && (
+                      <span className="bg-amber-400/20 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30">Active</span>
+                    )}
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
-                    <div className="w-9 h-5 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:rounded-full after:h-4 after:w-4 after:transition-all"
-                      style={{ background: 'rgba(79,70,229,0.8)' }} />
-                  </label>
-                </div>
-              ))}
+                  <div className="space-y-2 opacity-80 w-full">
+                    <div className="h-2 w-12 rounded bg-white/20" />
+                    <div className="h-5 w-full rounded bg-white/5 border border-white/10" />
+                    <div className="flex gap-2">
+                      <div className="h-5 w-16 rounded bg-gradient-to-r from-amber-300 to-amber-500" />
+                      <div className="h-5 w-10 rounded bg-white/10" />
+                    </div>
+                  </div>
+                </button>
+
+                {/* PeopleFlow Light */}
+                <button
+                  onClick={() => setTheme('PeopleFlow Light')}
+                  className={cn(
+                    'p-5 rounded-2xl text-left border transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-40',
+                    theme === 'PeopleFlow Light' ? 'border-amber-500 shadow-md' : 'border-white/5 hover:border-white/20'
+                  )}
+                  style={{ background: '#F8FAFC' }}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm font-semibold" style={{ color: '#091E42' }}>PeopleFlow Light</span>
+                    {theme === 'PeopleFlow Light' && (
+                      <span className="bg-amber-500/20 text-amber-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/30">Active</span>
+                    )}
+                  </div>
+                  <div className="space-y-2 opacity-80 w-full">
+                    <div className="h-2 w-12 rounded" style={{ backgroundColor: 'rgba(9, 30, 66, 0.2)' }} />
+                    <div className="h-5 w-full rounded border" style={{ backgroundColor: '#ffffff', borderColor: 'rgba(9, 30, 66, 0.1)' }} />
+                    <div className="flex gap-2">
+                      <div className="h-5 w-16 rounded bg-gradient-to-r from-amber-300 to-amber-500" />
+                      <div className="h-5 w-10 rounded" style={{ backgroundColor: 'rgba(9, 30, 66, 0.05)' }} />
+                    </div>
+                  </div>
+                </button>
+              </div>
             </motion.div>
           )}
         </div>

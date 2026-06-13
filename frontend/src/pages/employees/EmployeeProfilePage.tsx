@@ -18,7 +18,7 @@ const TABS = ['Overview', 'Skills', 'Documents', 'Timeline']
 
 export default function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>()
-  const { hasRole } = useAuth()
+  const { hasRole, user } = useAuth()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState(0)
   const [showEdit, setShowEdit] = useState(false)
@@ -32,23 +32,24 @@ export default function EmployeeProfilePage() {
   if (isLoading) return <div className="p-6"><LoadingSpinner fullPage /></div>
   if (error || !employee) return <div className="p-6"><ErrorState onRetry={refetch} /></div>
 
-  const canEdit = hasRole(['admin', 'hr'])
+  const isSelf = user?.employeeId === id || user?.employee_id === id;
+  const canEdit = hasRole(['admin', 'hr']) || isSelf;
 
   return (
     <div className="p-6 space-y-6 max-w-[1200px]">
       <EmployeeProfileHeader employee={employee} canEdit={canEdit} onEdit={() => setShowEdit(true)} onRefresh={refetch} />
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', width: 'fit-content' }}>
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-white/3 border border-white/5 w-fit">
         {TABS.map((tab, i) => (
           <button
             key={tab}
             onClick={() => setActiveTab(i)}
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-              activeTab === i ? 'text-white' : 'text-white/35 hover:text-white/60',
+              activeTab === i ? 'text-[#001133]' : 'text-white/35 hover:text-white/60',
             )}
-            style={activeTab === i ? { background: 'linear-gradient(135deg, #a3ff29, #21d978)' } : {}}
+            style={activeTab === i ? { background: 'linear-gradient(135deg, #FFE264, #F2A900)' } : {}}
           >
             {tab}
           </button>
@@ -66,6 +67,21 @@ export default function EmployeeProfilePage() {
               <InfoRow label="Gender" value={employee.gender} />
               <InfoRow label="Phone" value={employee.phone} />
               <InfoRow label="Personal Email" value={employee.personalEmail} />
+              {employee.linkedinUrl && (
+                <InfoRow label="LinkedIn" value={<a href={employee.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-lime-300 hover:underline truncate max-w-[180px] inline-block">{employee.linkedinUrl}</a>} />
+              )}
+              {employee.address?.street && (
+                <InfoRow label="Address" value={`${employee.address.street}, ${employee.address.city}, ${employee.address.state}`} />
+              )}
+              {employee.emergencyContact?.name && (
+                <InfoRow label="Emergency Contact" value={`${employee.emergencyContact.name} (${employee.emergencyContact.relationship}) - ${employee.emergencyContact.phone}`} />
+              )}
+              {employee.bio && (
+                <div className="pt-2 border-t border-white/5 mt-2 text-xs">
+                  <span className="text-white/35 block mb-1">Personal Bio</span>
+                  <p className="text-white/70 italic">{employee.bio}</p>
+                </div>
+              )}
             </InfoCard>
 
             {/* Professional Info */}
@@ -111,7 +127,15 @@ export default function EmployeeProfilePage() {
 
         {activeTab === 1 && (
           <motion.div key="skills" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <EmployeeSkills skills={employee.skills || []} />
+            <EmployeeSkills
+              skills={employee.skills || []}
+              certifications={employee.certifications || []}
+              education={employee.education || []}
+              licenses={employee.licenses || []}
+              employeeId={employee.id}
+              isSelf={isSelf}
+              onRefresh={refetch}
+            />
           </motion.div>
         )}
 

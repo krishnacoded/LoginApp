@@ -31,7 +31,7 @@ export default function ActivityFeed({ items = [] }: ActivityFeedProps) {
           <h2 className="text-sm font-semibold text-white/88">Activity Feed</h2>
           <p className="mt-1 text-xs text-white/34">Live operational events</p>
         </div>
-        <Activity size={17} className="text-lime-300" />
+        <Activity size={17} className="text-primary" />
       </div>
 
       <div className="space-y-3">
@@ -43,7 +43,7 @@ export default function ActivityFeed({ items = [] }: ActivityFeedProps) {
             transition={{ delay: index * 0.04 }}
             className="flex gap-3"
           >
-            <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-lime-300/12 text-lime-300">
+            <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
               <Clock size={14} />
             </div>
             <div className="min-w-0 flex-1">

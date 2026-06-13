@@ -1,6 +1,7 @@
 const { query } = require('../config/database');
 const ApiResponse = require('../utils/response');
 const documentService = require('../services/document.service');
+const { auditLog } = require('../middleware/audit');
 const path = require('path');
 const fs = require('fs');
 
@@ -8,7 +9,16 @@ const getAll = async (req, res, next) => {
   try {
     const filters = { ...req.query };
     if (req.user.role_name === 'employee') {
-      filters.employeeId = req.user.employee_id;
+      if (filters.documentType === 'policy') {
+        filters.isCompanyPolicy = true;
+      } else {
+        filters.employeeId = req.user.employee_id;
+      }
+    } else {
+      if (filters.employeeId === 'company') {
+        filters.isCompanyPolicy = true;
+        delete filters.employeeId;
+      }
     }
     const result = await documentService.getAll(filters);
     return ApiResponse.paginated(res, result.documents, result.pagination);
@@ -56,10 +66,11 @@ const upload = async (req, res, next) => {
 
     const processFile = async (file, type, name) => {
       const fileUrl = `/uploads/${file.path.replace(/\\/g, '/').split('uploads/')[1]}`;
+      const targetEmployeeId = employeeId === 'company' ? null : employeeId;
       const { rows } = await query(
         `INSERT INTO documents (employee_id, uploaded_by, document_type, document_name, file_name, file_path, file_size, mime_type, notes, expiry_date)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-        [employeeId, req.user.id, type || 'other', name || file.originalname,
+        [targetEmployeeId, req.user.id, type || 'other', name || file.originalname,
          file.filename, fileUrl, file.size, file.mimetype, notes || null, expiryDate || null]
       );
       return rows[0];
@@ -118,11 +129,20 @@ const download = async (req, res, next) => {
     if (rows.length === 0) return ApiResponse.notFound(res);
 
     const doc = rows[0];
-    const filePath = path.join(process.cwd(), doc.file_path);
+    const filePath = path.resolve(process.cwd(), doc.file_path);
+
+    // Path traversal protection: ensure resolved path is within uploads directory
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    if (!filePath.startsWith(uploadsDir)) {
+      return ApiResponse.forbidden(res, 'Invalid file path');
+    }
 
     if (!fs.existsSync(filePath)) {
       return ApiResponse.error(res, 'File not found on server', 404);
     }
+
+    // Audit log for document download
+    await auditLog(req.user.id, 'DOCUMENT_DOWNLOAD', 'document', doc.id, null, null, req);
 
     res.download(filePath, doc.document_name);
   } catch (error) { next(error); }

@@ -1,14 +1,25 @@
 const { query, getClient } = require('../config/database');
 const { getPaginationParams, buildPaginationMeta } = require('../utils/pagination');
 const { auditLog } = require('../middleware/audit');
+const { buildScopeClause, sanitizeEmployeeFields } = require('../middleware/dataScope');
 const notificationService = require('./notification.service');
 
 class EmployeeService {
-  async getAll(filters = {}, req) {
+  async getAll(filters = {}, req, dataScope = null) {
     const { page, limit, offset } = getPaginationParams(filters);
     const conditions = ['e.deleted_at IS NULL'];
     const params = [];
     let paramIdx = 1;
+
+    // Apply data scope filtering
+    if (dataScope) {
+      const { clause, params: scopeParams, nextIdx } = buildScopeClause(dataScope, 'e', paramIdx);
+      if (clause) {
+        conditions.push(clause);
+        params.push(...scopeParams);
+        paramIdx = nextIdx;
+      }
+    }
 
     if (filters.search) {
       conditions.push(`(
@@ -78,7 +89,7 @@ class EmployeeService {
     };
   }
 
-  async getById(id) {
+  async getById(id, dataScope = null, permissions = [], selfEmployeeId = null) {
     const { rows } = await query(
       `SELECT e.*, u.email, u.is_active as account_active, u.last_login,
               r.name as role_name,
@@ -101,7 +112,7 @@ class EmployeeService {
 
     // Get skills
     const { rows: skills } = await query(
-      `SELECT es.id, es.proficiency_level, es.years_experience, es.is_primary, es.certified,
+      `SELECT es.id, es.proficiency_level, es.years_experience, es.is_primary, es.certified, es.status, es.rejection_reason,
               s.id as skill_id, s.name as skill_name,
               sc.name as category_name, sc.color as category_color
        FROM employee_skills es
@@ -140,10 +151,44 @@ class EmployeeService {
        FROM leave_balances lb
        JOIN leave_types lt ON lb.leave_type_id = lt.id
        WHERE lb.employee_id = $1 AND lb.year = $2 AND lt.is_active = TRUE`,
-      [id, new Date().getFullYear()]
+       [id, new Date().getFullYear()]
     );
 
-    return { ...employee, skills, documents, timeline, leaveBalances };
+    // Get certifications
+    const { rows: certifications } = await query(
+      `SELECT id, name, issuing_organization, issue_date, expiry_date, credential_id, credential_url, status, proof_url, rejection_reason
+       FROM employee_certifications
+       WHERE employee_id = $1
+       ORDER BY issue_date DESC`,
+      [id]
+    );
+
+    // Get education records
+    const { rows: education } = await query(
+      `SELECT id, institution, degree, field_of_study, start_date, end_date, grade, status, proof_url, rejection_reason
+       FROM employee_education
+       WHERE employee_id = $1
+       ORDER BY end_date DESC`,
+      [id]
+    );
+
+    // Get professional licenses
+    const { rows: licenses } = await query(
+      `SELECT id, name, license_number, issuing_state, issue_date, expiry_date, status, proof_url, rejection_reason
+       FROM employee_licenses
+       WHERE employee_id = $1
+       ORDER BY issue_date DESC`,
+      [id]
+    );
+
+    const result = { ...employee, skills, documents, timeline, leaveBalances, certifications, education, licenses };
+
+    // Sanitize sensitive fields based on permissions
+    if (permissions.length > 0 || selfEmployeeId) {
+      return sanitizeEmployeeFields(result, permissions, selfEmployeeId);
+    }
+
+    return result;
   }
 
   async create(data, createdBy, req) {

@@ -67,19 +67,19 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
         transition={{ duration: 0.2 }}
         className="fixed right-4 top-16 z-50 w-96 rounded-2xl overflow-hidden shadow-2xl"
         style={{
-          background: 'rgba(10, 15, 30, 0.98)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+          background: 'var(--glass-card-bg)',
+          border: '1px solid var(--glass-card-border)',
+          boxShadow: 'var(--glass-card-shadow)',
         }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
           <div className="flex items-center gap-2">
-            <Bell size={16} className="text-lime-300" />
+            <Bell size={16} className="text-amber-400" />
             <span className="font-semibold text-white/80">Notifications</span>
             {unreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #a3ff29, #21d978)' }}>
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold text-[#001133]"
+                style={{ background: 'linear-gradient(135deg, #FFE264, #F2A900)' }}>
                 {unreadCount}
               </span>
             )}
@@ -88,7 +88,7 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllReadMutation.mutate()}
-                className="flex items-center gap-1 text-xs text-lime-300 hover:text-lime-200 transition-colors"
+                className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors"
               >
                 <CheckCheck size={14} />
                 <span>Mark all read</span>
@@ -102,17 +102,17 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
 
         {/* Notifications List */}
         <div className="max-h-[500px] overflow-y-auto">
-          {isLoading && (
+           {isLoading && (
             <div className="flex items-center justify-center py-12">
-              <div className="w-5 h-5 border-2 border-lime-400/30 border-t-lime-400 rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
             </div>
           )}
 
           {!isLoading && notifications.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{ background: 'rgba(79,70,229,0.1)' }}>
-                <Bell size={20} className="text-lime-300/50" />
+                style={{ background: 'rgba(48, 127, 226, 0.1)' }}>
+                <Bell size={20} className="text-amber-400/50" />
               </div>
               <p className="text-sm text-white/30">No notifications yet</p>
             </div>
@@ -121,10 +121,10 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
           {notifications.map((notif: any) => (
             <div
               key={notif.id}
-              className={`flex items-start gap-3 px-4 py-3.5 border-b border-white/5 hover:bg-white/2 transition-colors ${!notif.isRead ? 'bg-lime-400/5' : ''}`}
+              className={`flex items-start gap-3 px-4 py-3.5 border-b border-white/5 hover:bg-white/2 transition-colors ${!notif.isRead ? 'bg-amber-400/5' : ''}`}
             >
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
-                style={{ background: 'rgba(79,70,229,0.1)' }}>
+                style={{ background: 'rgba(48, 127, 226, 0.1)' }}>
                 {getNotifIcon(notif.type)}
               </div>
               <div className="flex-1 min-w-0">
@@ -141,7 +141,7 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
                     className="p-1 rounded hover:bg-white/5 transition-colors"
                     title="Mark as read"
                   >
-                    <Check size={13} className="text-lime-300" />
+                    <Check size={13} className="text-amber-400" />
                   </button>
                 )}
                 <button

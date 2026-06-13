@@ -3,6 +3,78 @@ const ApiResponse = require('../utils/response');
 
 const getOverview = async (req, res, next) => {
   try {
+    const user = req.user;
+    const roleName = user.role_name;
+
+    // Employee scope: return only personal stats
+    if (roleName === 'employee') {
+      const employeeId = user.employee_id;
+      if (!employeeId) {
+        return ApiResponse.success(res, { overview: {}, leaveBalances: [], recentAttendance: [] });
+      }
+
+      const [leaveBalances, recentAttendance] = await Promise.all([
+        query(
+          `SELECT lb.*, lt.name as leave_type_name, lt.color, lt.code
+           FROM leave_balances lb
+           JOIN leave_types lt ON lb.leave_type_id = lt.id
+           WHERE lb.employee_id = $1 AND lb.year = $2 AND lt.is_active = TRUE`,
+          [employeeId, new Date().getFullYear()]
+        ),
+        query(
+          `SELECT date, clock_in, clock_out, work_hours as total_hours, status
+           FROM attendance
+           WHERE employee_id = $1
+           ORDER BY date DESC LIMIT 7`,
+          [employeeId]
+        ),
+      ]);
+
+      return ApiResponse.success(res, {
+        overview: { scope: 'personal' },
+        leaveBalances: leaveBalances.rows,
+        recentAttendance: recentAttendance.rows,
+      });
+    }
+
+    // Manager scope: return team stats
+    if (roleName === 'manager') {
+      const managerId = user.employee_id;
+      const [teamMembers, teamLeaves, teamAttendance] = await Promise.all([
+        query(
+          `SELECT COUNT(*) as team_size
+           FROM employees WHERE manager_id = $1 AND deleted_at IS NULL`,
+          [managerId]
+        ),
+        query(
+          `SELECT
+             COUNT(*) FILTER (WHERE lr.status = 'pending') as pending_leaves,
+             COUNT(*) FILTER (WHERE lr.status = 'approved' AND EXTRACT(YEAR FROM lr.start_date) = $2) as approved_this_year
+           FROM leave_requests lr
+           JOIN employees e ON lr.employee_id = e.id
+           WHERE e.manager_id = $1`,
+          [managerId, new Date().getFullYear()]
+        ),
+        query(
+          `SELECT COUNT(DISTINCT al.employee_id) as present_today
+           FROM attendance al
+           JOIN employees e ON al.employee_id = e.id
+           WHERE e.manager_id = $1 AND al.date = CURRENT_DATE`,
+          [managerId]
+        ),
+      ]);
+
+      return ApiResponse.success(res, {
+        overview: {
+          scope: 'team',
+          team_size: parseInt(teamMembers.rows[0]?.team_size || 0),
+          ...teamLeaves.rows[0],
+          present_today: parseInt(teamAttendance.rows[0]?.present_today || 0),
+        },
+      });
+    }
+
+    // Admin/HR scope: full org dashboard (existing behavior)
     // Employee stats
     const { rows: empStats } = await query(`
       SELECT

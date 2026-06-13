@@ -9,11 +9,37 @@ class AttendanceRepository {
   async updateSettings(data) {
     const { rows } = await query(
       `UPDATE attendance_settings
-       SET office_start_time = $1, office_end_time = $2, full_day_threshold = $3,
-           half_day_threshold = $4, late_arrival_threshold = $5, updated_at = NOW()
+       SET office_start_time = $1, 
+           office_end_time = $2, 
+           full_day_threshold = $3,
+           half_day_threshold = $4, 
+           late_arrival_threshold = $5,
+           geofencing_enabled = COALESCE($6, geofencing_enabled),
+           geofence_latitude = COALESCE($7, geofence_latitude),
+           geofence_longitude = COALESCE($8, geofence_longitude),
+           geofence_radius_meters = COALESCE($9, geofence_radius_meters),
+           device_tracking_enabled = COALESCE($10, device_tracking_enabled),
+           overtime_enabled = COALESCE($11, overtime_enabled),
+           overtime_threshold_hours = COALESCE($12, overtime_threshold_hours),
+           early_departure_threshold_time = COALESCE($13, early_departure_threshold_time),
+           updated_at = NOW()
        WHERE id = 1
        RETURNING *`,
-      [data.officeStartTime, data.officeEndTime, data.fullDayThreshold, data.halfDayThreshold, data.lateArrivalThreshold]
+      [
+        data.officeStartTime, 
+        data.officeEndTime, 
+        data.fullDayThreshold, 
+        data.halfDayThreshold, 
+        data.lateArrivalThreshold,
+        data.geofencingEnabled !== undefined ? data.geofencingEnabled : null,
+        data.geofenceLatitude !== undefined ? data.geofenceLatitude : null,
+        data.geofenceLongitude !== undefined ? data.geofenceLongitude : null,
+        data.geofenceRadiusMeters !== undefined ? data.geofenceRadiusMeters : null,
+        data.deviceTrackingEnabled !== undefined ? data.deviceTrackingEnabled : null,
+        data.overtimeEnabled !== undefined ? data.overtimeEnabled : null,
+        data.overtimeThresholdHours !== undefined ? data.overtimeThresholdHours : null,
+        data.earlyDepartureThresholdTime !== undefined ? data.earlyDepartureThresholdTime : null
+      ]
     );
     return rows[0];
   }
@@ -27,11 +53,24 @@ class AttendanceRepository {
   }
 
   async create(data) {
+    const keys = [];
+    const values = [];
+    const params = [];
+    let idx = 1;
+
+    for (const [key, val] of Object.entries(data)) {
+      if (val === undefined) continue;
+      const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      keys.push(dbKey);
+      values.push(`$${idx++}`);
+      params.push(val);
+    }
+
     const { rows } = await query(
-      `INSERT INTO attendance (employee_id, date, clock_in, status)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO attendance (${keys.join(', ')})
+       VALUES (${values.join(', ')})
        RETURNING *`,
-      [data.employeeId, data.date, data.clockIn, data.status]
+      params
     );
     return rows[0];
   }
@@ -41,17 +80,11 @@ class AttendanceRepository {
     const params = [];
     let idx = 1;
 
-    if (data.clockOut !== undefined) {
-      fields.push(`clock_out = $${idx++}`);
-      params.push(data.clockOut);
-    }
-    if (data.status !== undefined) {
-      fields.push(`status = $${idx++}`);
-      params.push(data.status);
-    }
-    if (data.workHours !== undefined) {
-      fields.push(`work_hours = $${idx++}`);
-      params.push(data.workHours);
+    for (const [key, val] of Object.entries(data)) {
+      if (val === undefined) continue;
+      const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      fields.push(`${dbKey} = $${idx++}`);
+      params.push(val);
     }
 
     if (fields.length === 0) return null;
@@ -171,6 +204,55 @@ class AttendanceRepository {
       [employeeId, startDate, endDate]
     );
     return rows[0];
+  }
+
+  async startBreak(attendanceId, breakType) {
+    const { rows } = await query(
+      `INSERT INTO attendance_breaks (attendance_id, break_type, start_time)
+       VALUES ($1, $2, NOW())
+       RETURNING *`,
+      [attendanceId, breakType]
+    );
+    return rows[0];
+  }
+
+  async getActiveBreak(attendanceId) {
+    const { rows } = await query(
+      `SELECT * FROM attendance_breaks 
+       WHERE attendance_id = $1 AND end_time IS NULL 
+       LIMIT 1`,
+      [attendanceId]
+    );
+    return rows[0] || null;
+  }
+
+  async endBreak(breakId) {
+    const { rows } = await query(
+      `UPDATE attendance_breaks
+       SET end_time = NOW(),
+           duration_minutes = ROUND(EXTRACT(EPOCH FROM (NOW() - start_time)) / 60)
+       WHERE id = $1
+       RETURNING *`,
+      [breakId]
+    );
+    return rows[0];
+  }
+
+  async updateTotalBreakDuration(attendanceId) {
+    const { rows } = await query(
+      `SELECT COALESCE(SUM(duration_minutes), 0) as total_duration
+       FROM attendance_breaks
+       WHERE attendance_id = $1`,
+      [attendanceId]
+    );
+    const totalDuration = parseInt(rows[0].total_duration, 10);
+    await query(
+      `UPDATE attendance
+       SET break_duration_minutes = $1, updated_at = NOW()
+       WHERE id = $2`,
+      [totalDuration, attendanceId]
+    );
+    return totalDuration;
   }
 }
 

@@ -66,9 +66,9 @@ function PageBtn({ page, current, onClick }: { page: number; current: number; on
       onClick={() => onClick(page)}
       className={cn(
         'w-8 h-8 rounded-lg text-sm font-medium transition-all',
-        isActive ? 'text-white' : 'text-white/30 hover:text-white/60 hover:bg-white/5',
+        isActive ? 'text-[#001133]' : 'text-white/30 hover:text-white/60 hover:bg-white/5',
       )}
-      style={isActive ? { background: 'linear-gradient(135deg, #a3ff29, #21d978)' } : {}}
+      style={isActive ? { background: 'linear-gradient(135deg, #FFE264, #F2A900)' } : {}}
     >
       {page}
     </button>

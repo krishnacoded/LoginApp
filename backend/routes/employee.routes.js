@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const employeeController = require('../controllers/employee.controller');
 const documentController = require('../controllers/document.controller');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, requirePermission } = require('../middleware/auth');
+const { attachDataScope } = require('../middleware/dataScope');
 const { uploadProfile, uploadDocument } = require('../middleware/upload');
 const validate = require('../middleware/validate');
 const employeeValidator = require('../validators/employee.validator');
 
-router.use(authenticate);
+router.use(authenticate, attachDataScope);
 
 /**
  * @swagger
@@ -59,7 +60,7 @@ router.get('/:id', employeeController.getById);
  *     tags: [Employees]
  *     summary: Create new employee
  */
-router.post('/', authorize('admin', 'hr'), validate(employeeValidator.create), employeeController.create);
+router.post('/', authorize('admin', 'hr'), requirePermission('employee.create'), validate(employeeValidator.create), employeeController.create);
 
 /**
  * @swagger
@@ -68,7 +69,7 @@ router.post('/', authorize('admin', 'hr'), validate(employeeValidator.create), e
  *     tags: [Employees]
  *     summary: Update employee
  */
-router.put('/:id', authorize('admin', 'hr'), validate(employeeValidator.update), employeeController.update);
+router.put('/:id', validate(employeeValidator.update), employeeController.update);
 
 /**
  * @swagger
@@ -77,7 +78,7 @@ router.put('/:id', authorize('admin', 'hr'), validate(employeeValidator.update),
  *     tags: [Employees]
  *     summary: Soft delete employee
  */
-router.delete('/:id', authorize('admin', 'hr'), employeeController.remove);
+router.delete('/:id', authorize('admin', 'hr'), requirePermission('employee.delete'), employeeController.remove);
 
 /**
  * @swagger
@@ -95,7 +96,7 @@ router.post('/:id/restore', authorize('admin', 'hr'), employeeController.restore
  *     tags: [Employees]
  *     summary: Upload profile picture
  */
-router.post('/:id/profile-picture', uploadProfile, employeeController.uploadProfilePicture);
+router.post('/:id/profile-picture', requirePermission('employee.edit'), uploadProfile, employeeController.uploadProfilePicture);
 
 /**
  * @swagger

@@ -92,7 +92,7 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
           <div className="max-h-[480px] overflow-y-auto p-2">
             {loading && (
               <div className="flex items-center justify-center py-12">
-                <div className="w-6 h-6 border-2 border-lime-400/30 border-t-lime-400 rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
               </div>
             )}
 
@@ -108,7 +108,7 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
                   ].map(({ icon: Icon, label, path }) => (
                     <button key={path} onClick={() => goTo(path)}
                       className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-white/5 transition-colors">
-                      <Icon size={18} className="text-lime-300" />
+                      <Icon size={18} className="text-primary" />
                       <span className="text-xs text-white/40">{label}</span>
                     </button>
                   ))}
@@ -199,13 +199,13 @@ function ResultItem({ onClick, primary, secondary, avatar, initials }: any) {
       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left group"
     >
       {initials ? (
-        <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold text-white overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #a3ff29, #21d978)' }}>
+        <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold text-[#001133] overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #FFE264, #F2A900)' }}>
           {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : initials}
         </div>
       ) : (
         <div className="w-8 h-8 rounded-lg flex-shrink-0"
-          style={{ background: 'rgba(79,70,229,0.15)' }} />
+          style={{ background: 'rgba(48, 127, 226, 0.15)' }} />
       )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white/80 truncate">{primary}</p>

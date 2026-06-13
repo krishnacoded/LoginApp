@@ -7,7 +7,7 @@ export default function UnauthorizedPage() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6 text-foreground" style={{ background: 'var(--bg-app-gradient)' }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -17,10 +17,10 @@ export default function UnauthorizedPage() {
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{
-              background: 'linear-gradient(135deg, #a3ff29, #21d978)',
+              background: 'linear-gradient(135deg, #FFE264, #F2A900)',
             }}
           >
-            <ShieldAlert size={20} className="text-white" />
+            <ShieldAlert size={20} className="text-[#001133]" />
           </div>
 
           <span className="text-xl font-bold gradient-text">

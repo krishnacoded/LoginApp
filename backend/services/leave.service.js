@@ -343,6 +343,8 @@ class LeaveService {
       }
 
       await client.query('COMMIT');
+
+      await auditLog(rejectorId, 'REJECT_LEAVE', 'leave', leaveId, { status: leave.status }, { status: 'rejected' }, req);
       return await this.getById(leaveId);
     } catch (error) {
       await client.query('ROLLBACK');
@@ -354,6 +356,15 @@ class LeaveService {
 
   async cancel(leaveId, userId, reason, req) {
     const leave = await this.getById(leaveId);
+
+    // Ownership check: only the leave owner can cancel their own leave
+    const { rows: empRows } = await query(
+      'SELECT id FROM employees WHERE user_id = $1 AND deleted_at IS NULL',
+      [userId]
+    );
+    if (empRows.length === 0 || empRows[0].id !== leave.employee_id) {
+      throw { statusCode: 403, message: 'You can only cancel your own leave requests' };
+    }
 
     if (!['pending', 'manager_approved'].includes(leave.status)) {
       throw { statusCode: 400, message: 'Can only cancel pending or manager-approved leaves' };

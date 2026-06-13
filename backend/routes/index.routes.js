@@ -3,18 +3,18 @@ const router = express.Router();
 
 // Skills Routes
 const skillController = require('../controllers/skill.controller');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, requirePermission } = require('../middleware/auth');
 
 const skillRouter = express.Router();
 skillRouter.use(authenticate);
 skillRouter.get('/categories', skillController.getCategories);
-skillRouter.post('/categories', authorize('admin', 'hr'), skillController.createCategory);
+skillRouter.post('/categories', authorize('admin', 'hr'), requirePermission('skill.create'), skillController.createCategory);
 skillRouter.get('/stats', skillController.getStats);
 skillRouter.get('/', skillController.getAll);
 skillRouter.get('/:id', skillController.getById);
-skillRouter.post('/', authorize('admin', 'hr'), skillController.create);
-skillRouter.put('/:id', authorize('admin', 'hr'), skillController.update);
-skillRouter.delete('/:id', authorize('admin'), skillController.remove);
+skillRouter.post('/', authorize('admin', 'hr'), requirePermission('skill.create'), skillController.create);
+skillRouter.put('/:id', authorize('admin', 'hr'), requirePermission('skill.create'), skillController.update);
+skillRouter.delete('/:id', authorize('admin'), requirePermission('skill.delete'), skillController.remove);
 
 // Leave Routes
 const leaveController = require('../controllers/leave.controller');
@@ -23,15 +23,15 @@ const { uploadLeaveAttachment } = require('../middleware/upload');
 const leaveRouter = express.Router();
 leaveRouter.use(authenticate);
 leaveRouter.get('/types', leaveController.getTypes);
-leaveRouter.get('/stats', authorize('admin', 'hr', 'manager'), leaveController.getStats);
+leaveRouter.get('/stats', authorize('admin', 'hr', 'manager'), requirePermission('leave.view'), leaveController.getStats);
 leaveRouter.get('/my-balance', leaveController.getMyBalance);
 leaveRouter.get('/', leaveController.getAll);
 leaveRouter.get('/:id', leaveController.getById);
 leaveRouter.post('/', uploadLeaveAttachment, leaveController.apply);
-leaveRouter.post('/:id/approve', authorize('admin', 'hr', 'manager'), leaveController.approve);
-leaveRouter.post('/:id/reject', authorize('admin', 'hr', 'manager'), leaveController.reject);
+leaveRouter.post('/:id/approve', authorize('admin', 'hr', 'manager'), requirePermission('leave.approve'), leaveController.approve);
+leaveRouter.post('/:id/reject', authorize('admin', 'hr', 'manager'), requirePermission('leave.approve'), leaveController.reject);
 leaveRouter.post('/:id/cancel', leaveController.cancel);
-leaveRouter.get('/balance/:employeeId', authorize('admin', 'hr', 'manager'), leaveController.getBalance);
+leaveRouter.get('/balance/:employeeId', authorize('admin', 'hr', 'manager'), requirePermission('leave.view'), leaveController.getBalance);
 
 // Dashboard Routes
 const dashboardController = require('../controllers/dashboard.controller');
@@ -56,7 +56,7 @@ notificationRouter.delete('/:id', notificationController.deleteNotification);
 const auditController = require('../controllers/audit.controller');
 
 const auditRouter = express.Router();
-auditRouter.use(authenticate, authorize('admin', 'hr'));
+auditRouter.use(authenticate, authorize('admin', 'hr'), requirePermission('audit.view'));
 auditRouter.get('/', auditController.getAll);
 auditRouter.get('/:entityType/:entityId', auditController.getEntityLogs);
 

@@ -14,7 +14,7 @@ import { cn, formatDate } from '../../utils'
 export default function AssetsPage() {
   const { user, hasRole } = useAuth()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'my' | 'manage'>('my')
+  const [activeTab, setActiveTab] = useState<'my' | 'requests' | 'manage'>('my')
 
   // Search/Filters for HR/Admin
   const [search, setSearch] = useState('')
@@ -29,6 +29,15 @@ export default function AssetsPage() {
   const [showStatusUpdate, setShowStatusUpdate] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<any | null>(null)
+
+  // Asset Requests state
+  const [showRequestModal, setShowRequestModal] = useState(false)
+  const [requestType, setRequestType] = useState('laptop')
+  const [requestReason, setRequestReason] = useState('')
+  const [selectedRequestForAction, setSelectedRequestForAction] = useState<any | null>(null)
+  const [showActionModal, setShowActionModal] = useState<'approve' | 'reject' | null>(null)
+  const [actionComment, setActionComment] = useState('')
+  const [allocAssetId, setAllocAssetId] = useState('')
 
   // Form states
   const [newName, setNewName] = useState('')
@@ -67,6 +76,52 @@ export default function AssetsPage() {
     queryKey: ['assets-detail', selectedAsset?.id],
     queryFn: () => assetService.getById(selectedAsset.id),
     enabled: !!selectedAsset && showHistory,
+  })
+
+  // Requests Queries
+  const { data: requestsData, isLoading: loadingRequests } = useQuery({
+    queryKey: ['asset-requests-list'],
+    queryFn: () => assetService.getAssetRequests(),
+    enabled: activeTab === 'requests',
+  })
+
+  const { data: availableAssets } = useQuery({
+    queryKey: ['assets-available-list'],
+    queryFn: async () => {
+      const res = await assetService.getAll({ status: 'available', limit: 100 })
+      return res?.data || []
+    },
+    enabled: hasRole(['admin', 'hr']) && showActionModal === 'approve' && selectedRequestForAction?.status === 'Pending HR Approval',
+  })
+
+  // Requests Mutations
+  const createRequestMutation = useMutation({
+    mutationFn: (data: any) => assetService.createAssetRequest(data),
+    onSuccess: () => {
+      toast.success('Asset request submitted successfully!')
+      queryClient.invalidateQueries({ queryKey: ['asset-requests-list'] })
+      setShowRequestModal(false)
+      setRequestReason('')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to submit request'),
+  })
+
+  const actionRequestMutation = useMutation({
+    mutationFn: (data: { id: string; action: 'approve' | 'reject'; comment?: string; assetId?: string }) =>
+      data.action === 'approve'
+        ? assetService.approveAssetRequest(data.id, data.comment, data.assetId)
+        : assetService.rejectAssetRequest(data.id, data.comment),
+    onSuccess: (_, variables) => {
+      toast.success(`Asset request ${variables.action}d successfully!`)
+      queryClient.invalidateQueries({ queryKey: ['asset-requests-list'] })
+      queryClient.invalidateQueries({ queryKey: ['assets-all'] })
+      queryClient.invalidateQueries({ queryKey: ['assets-my'] })
+      setShowActionModal(null)
+      setSelectedRequestForAction(null)
+      setActionComment('')
+      setAllocAssetId('')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Action failed'),
   })
 
   // Mutations
@@ -148,7 +203,11 @@ export default function AssetsPage() {
         title="Asset Directory"
         subtitle="Manage and track company assets and equipment"
         actions={
-          hasRole(['admin', 'hr']) && activeTab === 'manage' ? (
+          activeTab === 'requests' ? (
+            <button onClick={() => setShowRequestModal(true)} className="btn-primary flex items-center gap-2">
+              <Plus size={16} /> Request Asset
+            </button>
+          ) : hasRole(['admin', 'hr']) && activeTab === 'manage' ? (
             <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
               <Plus size={16} /> Add New Asset
             </button>
@@ -163,6 +222,12 @@ export default function AssetsPage() {
           className={cn('pb-3 text-sm font-semibold border-b-2 transition-all duration-200', activeTab === 'my' ? 'border-sun text-sun' : 'border-transparent text-white/35 hover:text-white/60')}
         >
           My Allocated Assets
+        </button>
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={cn('pb-3 text-sm font-semibold border-b-2 transition-all duration-200', activeTab === 'requests' ? 'border-sun text-sun' : 'border-transparent text-white/35 hover:text-white/60')}
+        >
+          Asset Requests
         </button>
         {hasRole(['admin', 'hr']) && (
           <button
@@ -208,6 +273,120 @@ export default function AssetsPage() {
                 </div>
               ))
             )}
+          </motion.div>
+        )}
+
+        {activeTab === 'requests' && (
+          <motion.div
+            key="requests"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="space-y-4"
+          >
+            <div className="glass-card rounded-2xl overflow-hidden">
+              {loadingRequests ? (
+                <div className="p-10"><LoadingSpinner /></div>
+              ) : !requestsData || requestsData.length === 0 ? (
+                <div className="p-10">
+                  <EmptyState icon={Laptop} title="No asset requests" description="No asset requests have been submitted yet" />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-white/[0.02] text-xs text-white/35 uppercase">
+                      <tr>
+                        <th className="p-4">Requested Item</th>
+                        {hasRole(['admin', 'hr', 'manager']) && <th className="p-4">Employee</th>}
+                        <th className="p-4">Reason</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Timeline / Comments</th>
+                        <th className="p-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {requestsData.map((req: any) => {
+                        const canApprove = (
+                          (req.status === 'Pending Manager Approval' && (hasRole(['admin', 'hr']) || (user?.employeeId || user?.employee_id) === req.employee_manager_id)) ||
+                          (req.status === 'Pending HR Approval' && hasRole(['admin', 'hr']))
+                        );
+
+                        return (
+                          <tr key={req.id} className="hover:bg-white/[0.01] transition">
+                            <td className="p-4 flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-white/5 flex-shrink-0">{getAssetIcon(req.asset_type)}</div>
+                              <div>
+                                <div className="font-semibold text-white/80 capitalize">{req.asset_type.replace('_', ' ')}</div>
+                                <div className="text-[10px] text-white/30">{formatDate(req.created_at || req.createdAt)}</div>
+                              </div>
+                            </td>
+                            {hasRole(['admin', 'hr', 'manager']) && (
+                              <td className="p-4 text-xs">
+                                <span className="font-medium text-white/70">{req.employee_first_name} {req.employee_last_name}</span>
+                                <span className="text-[10px] text-white/30 block font-mono">{req.employee_code}</span>
+                              </td>
+                            )}
+                            <td className="p-4 text-xs text-white/60 max-w-xs truncate font-medium" title={req.reason}>
+                              {req.reason || '--'}
+                            </td>
+                            <td className="p-4">
+                              <span className={cn(
+                                'text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border',
+                                req.status === 'Approved' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                                req.status === 'Rejected' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
+                                'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                              )}>
+                                {req.status}
+                              </span>
+                            </td>
+                            <td className="p-4 text-xs space-y-1">
+                              {req.manager_comment && (
+                                <p className="text-[11px] text-white/40">
+                                  <span className="font-semibold text-white/60">Manager:</span> "{req.manager_comment}"
+                                </p>
+                              )}
+                              {req.hr_comment && (
+                                <p className="text-[11px] text-white/40">
+                                  <span className="font-semibold text-white/60">HR:</span> "{req.hr_comment}"
+                                </p>
+                              )}
+                              {req.allocated_asset_serial && (
+                                <p className="text-[10px] text-emerald-400 font-mono">
+                                  Linked: {req.allocated_asset_name} ({req.allocated_asset_serial})
+                                </p>
+                              )}
+                              {!req.manager_comment && !req.hr_comment && !req.allocated_asset_serial && (
+                                <span className="text-white/20">--</span>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              {canApprove ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => { setSelectedRequestForAction(req); setShowActionModal('approve') }}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => { setSelectedRequestForAction(req); setShowActionModal('reject') }}
+                                    className="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-white/25">No actions</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -590,6 +769,128 @@ export default function AssetsPage() {
                   ))}
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* REQUEST ASSET MODAL */}
+      <AnimatePresence>
+        {showRequestModal && (
+          <div className="modal-backdrop">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="modal-content max-w-md">
+              <h3 className="text-lg font-semibold text-white/80 mb-4">Request Equipment / Asset</h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  createRequestMutation.mutate({ assetType: requestType, reason: requestReason })
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-xs text-white/40 mb-1">Asset Type</label>
+                  <select
+                    value={requestType}
+                    onChange={(e) => setRequestType(e.target.value)}
+                    className="bg-black/30 border border-white/10 rounded-xl px-4 py-2 w-full text-white/80 focus:outline-none focus:border-sun"
+                  >
+                    <option value="laptop">Laptop</option>
+                    <option value="mouse">Mouse</option>
+                    <option value="monitor">Monitor</option>
+                    <option value="id_card">ID Card</option>
+                    <option value="access_card">Access Card</option>
+                    <option value="software_license">Software License</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-white/40 mb-1">Reason for Request</label>
+                  <textarea
+                    value={requestReason}
+                    onChange={(e) => setRequestReason(e.target.value)}
+                    className="bg-black/30 border border-white/10 rounded-xl px-4 py-2 w-full text-white/80 focus:outline-none focus:border-sun min-h-[80px]"
+                    placeholder="Describe why you need this asset..."
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                  <button type="button" onClick={() => setShowRequestModal(false)} className="btn-secondary">Cancel</button>
+                  <button type="submit" disabled={createRequestMutation.isPending} className="btn-primary">Submit Request</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* REQUEST ACTION MODAL (APPROVE/REJECT) */}
+      <AnimatePresence>
+        {showActionModal && selectedRequestForAction && (
+          <div className="modal-backdrop">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="modal-content max-w-md">
+              <h3 className="text-lg font-semibold text-white/80 mb-2">
+                {showActionModal === 'approve' ? 'Approve' : 'Reject'} Asset Request
+              </h3>
+              <p className="text-xs text-white/40 mb-4">
+                Employee: <span className="font-semibold text-white/70">{selectedRequestForAction.employee_first_name} {selectedRequestForAction.employee_last_name}</span> · Item: <span className="capitalize text-sun font-semibold">{selectedRequestForAction.asset_type.replace('_', ' ')}</span>
+              </p>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  actionRequestMutation.mutate({
+                    id: selectedRequestForAction.id,
+                    action: showActionModal,
+                    comment: actionComment,
+                    assetId: allocAssetId || undefined
+                  })
+                }}
+                className="space-y-4"
+              >
+                {showActionModal === 'approve' && selectedRequestForAction.status === 'Pending HR Approval' && (
+                  <div>
+                    <label className="block text-xs text-white/40 mb-1">Allocate Physical Asset *</label>
+                    <select
+                      value={allocAssetId}
+                      onChange={(e) => setAllocAssetId(e.target.value)}
+                      className="bg-black/30 border border-white/10 rounded-xl px-4 py-2 w-full text-white/80 focus:outline-none focus:border-sun"
+                      required
+                    >
+                      <option value="">Select an available asset...</option>
+                      {availableAssets?.map((asset: any) => (
+                        <option key={asset.id} value={asset.id}>
+                          {asset.name} (S/N: {asset.serial_number})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-1">Comments / Notes</label>
+                  <textarea
+                    value={actionComment}
+                    onChange={(e) => setActionComment(e.target.value)}
+                    className="bg-black/30 border border-white/10 rounded-xl px-4 py-2 w-full text-white/80 focus:outline-none focus:border-sun min-h-[80px]"
+                    placeholder="Enter any feedback or justification..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                  <button type="button" onClick={() => { setShowActionModal(null); setSelectedRequestForAction(null); setActionComment(''); setAllocAssetId('') }} className="btn-secondary">
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionRequestMutation.isPending}
+                    className={cn(
+                      "btn-primary",
+                      showActionModal === 'reject' && "bg-red-600 hover:bg-red-500 shadow-red-500/10"
+                    )}
+                  >
+                    {showActionModal === 'approve' ? 'Approve' : 'Reject'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

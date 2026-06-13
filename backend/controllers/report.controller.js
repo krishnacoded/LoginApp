@@ -19,10 +19,15 @@ const attendanceColumns = [
   { header: 'Employee Code', key: 'employee_code', width: 15 },
   { header: 'Employee Name', key: 'employee_name', width: 25 },
   { header: 'Department', key: 'department_name', width: 20 },
+  { header: 'Shift', key: 'shift_name', width: 15 },
   { header: 'Date', key: 'date', width: 12, dateFormat: 'yyyy-MM-dd' },
   { header: 'Clock In', key: 'clock_in', width: 18, dateFormat: 'yyyy-MM-dd HH:mm:ss' },
   { header: 'Clock Out', key: 'clock_out', width: 18, dateFormat: 'yyyy-MM-dd HH:mm:ss' },
   { header: 'Work Hours', key: 'work_hours', width: 12 },
+  { header: 'Break Duration (mins)', key: 'break_duration_minutes', width: 15 },
+  { header: 'Overtime (hrs)', key: 'overtime_hours', width: 12 },
+  { header: 'WFH', key: 'is_wfh', width: 8 },
+  { header: 'On Duty', key: 'is_on_duty', width: 10 },
   { header: 'Status', key: 'status', width: 12 }
 ];
 

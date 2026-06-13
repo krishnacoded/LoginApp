@@ -36,6 +36,9 @@ class DepartmentService {
       location: 'location',
       isActive: 'is_active',
       parentDepartmentId: 'parent_department_id',
+      goals: 'goals',
+      contactPhone: 'contact_phone',
+      contactEmail: 'contact_email',
     };
     const fields = [];
     const values = [];

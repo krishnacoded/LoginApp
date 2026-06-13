@@ -17,9 +17,9 @@ export default function QuickActions() {
           <Link
             key={action.label}
             to={action.to}
-            className="group rounded-md border border-white/7 bg-white/[0.025] p-3 transition hover:border-lime-300/24 hover:bg-lime-300/8"
+            className="group rounded-md border border-white/7 bg-white/[0.025] p-3 transition hover:border-primary/24 hover:bg-primary/8"
           >
-            <action.icon size={18} className="text-lime-300" />
+            <action.icon size={18} className="text-primary" />
             <p className="mt-3 text-xs font-semibold text-white/74 group-hover:text-white">{action.label}</p>
           </Link>
         ))}

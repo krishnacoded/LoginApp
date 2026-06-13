@@ -10,6 +10,9 @@ const create = Joi.object({
   parentDepartmentId: id.allow(null),
   budget: Joi.number().min(0).allow(null),
   location: Joi.string().trim().max(160).allow('', null),
+  goals: Joi.string().trim().allow('', null),
+  contactPhone: Joi.string().trim().max(50).allow('', null),
+  contactEmail: Joi.string().trim().max(255).allow('', null),
 });
 
 const update = create.fork(['name', 'code'], (schema) => schema.optional()).keys({

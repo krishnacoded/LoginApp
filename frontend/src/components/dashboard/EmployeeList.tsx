@@ -30,7 +30,7 @@ export default function EmployeeList({ employees = [] }: { employees?: EmployeeL
           <h2 className="text-sm font-semibold text-white/88">Customer List</h2>
           <p className="mt-1 text-xs text-white/34">High-signal employee records</p>
         </div>
-        <Users size={17} className="text-lime-300" />
+        <Users size={17} className="text-primary" />
       </div>
 
       <div className="space-y-2">
