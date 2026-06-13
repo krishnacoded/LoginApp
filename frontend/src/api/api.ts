@@ -2,7 +2,15 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { toCamelCase } from '../utils';
 
-const API_BASE_URL = '/api/v1';
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+  }
+  return '/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

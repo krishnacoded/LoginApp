@@ -63,6 +63,8 @@ async register(data) {
       12
     );
 
+    const requireVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+
     const userResult = await client.query(
       `
       INSERT INTO users (
@@ -72,13 +74,14 @@ async register(data) {
         is_active,
         is_email_verified
       )
-      VALUES ($1, $2, $3, TRUE, FALSE)
+      VALUES ($1, $2, $3, TRUE, $4)
       RETURNING id, email
       `,
       [
         email.toLowerCase(),
         passwordHash,
         roleResult.rows[0].id,
+        !requireVerification,
       ]
     );
 
@@ -133,30 +136,41 @@ async register(data) {
       ]
     );
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    await client.query(
-      `
-      INSERT INTO email_verification_tokens (
-        user_id,
-        token_hash,
-        expires_at
-      )
-      VALUES (
-        $1,
-        $2,
-        NOW() + INTERVAL '24 hours'
-      )
-      `,
-      [user.id, hashToken(verificationToken)]
-    );
+    let verificationToken = null;
+    if (requireVerification) {
+      verificationToken = crypto.randomBytes(32).toString('hex');
+      await client.query(
+        `
+        INSERT INTO email_verification_tokens (
+          user_id,
+          token_hash,
+          expires_at
+        )
+        VALUES (
+          $1,
+          $2,
+          NOW() + INTERVAL '24 hours'
+        )
+        `,
+        [user.id, hashToken(verificationToken)]
+      );
+    }
 
     await client.query('COMMIT');
 
-    const emailResult = await sendVerificationEmail({
-      to: user.email,
-      firstName,
-      token: verificationToken,
-    });
+    let verificationEmailSent = false;
+    if (requireVerification && verificationToken) {
+      try {
+        const emailResult = await sendVerificationEmail({
+          to: user.email,
+          firstName,
+          token: verificationToken,
+        });
+        verificationEmailSent = !!emailResult.sent;
+      } catch (emailError) {
+        console.error('Failed to send verification email during registration:', emailError);
+      }
+    }
 
     return {
       id: user.id,
@@ -167,11 +181,15 @@ async register(data) {
       employeeCode,
       firstName,
       lastName,
-      verificationEmailSent: emailResult.sent,
+      verificationEmailSent,
     };
 
   } catch (error) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      // ignore rollback errors if transaction was already committed or aborted
+    }
     throw error;
   } finally {
     client.release();

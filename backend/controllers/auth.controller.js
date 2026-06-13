@@ -53,7 +53,11 @@ const register = async (req, res, next) => {
     const result = await authService.register(req.body);
     await auditLog(result.id, 'REGISTER', 'auth', result.id, null, { email: result.email }, req);
 
-    return ApiResponse.created(res, result, 'Registration successful. Please verify your email before signing in.');
+    const message = process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
+      ? 'Registration successful. Please verify your email before signing in.'
+      : 'Registration successful. You can now sign in.';
+
+    return ApiResponse.created(res, result, message);
   } catch (error) {
     if (error.statusCode) {
       return ApiResponse.error(res, error.message, error.statusCode);

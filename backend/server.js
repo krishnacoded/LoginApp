@@ -26,6 +26,7 @@ const verificationRoutes = require('./routes/verification.routes');
 const { errorHandler, notFound } = require('./middleware/error');
 const logger = require('./config/logger');
 const { verifyMailConnection } = require('./services/email.service');
+const { runMigrations } = require('./migrations/run');
 
 const app = express();
 
@@ -125,23 +126,39 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, async () => {
-  logger.info(`🚀 PeopleFlow API running on port ${PORT}`);
-  logger.info(`📚 Swagger docs available at http://localhost:${PORT}/api/docs`);
-  logger.info(`🌍 Environment: ${process.env.NODE_ENV}`);
-  
-  // Verify SMTP connection on startup
-  await verifyMailConnection();
-});
+const startServer = async () => {
+  try {
+    if (process.env.NODE_ENV !== 'test') {
+      logger.info('⏳ Running database migrations...');
+      await runMigrations();
+    }
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
-});
+    const server = app.listen(PORT, async () => {
+      logger.info(`🚀 PeopleFlow API running on port ${PORT}`);
+      logger.info(`📚 Swagger docs available at http://localhost:${PORT}/api/docs`);
+      logger.info(`🌍 Environment: ${process.env.NODE_ENV}`);
+      
+      // Verify SMTP connection on startup
+      await verifyMailConnection();
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        logger.info('Server closed');
+        process.exit(0);
+      });
+    });
+  } catch (err) {
+    logger.error('❌ Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 process.on('unhandledRejection', (err) => {
   logger.error('Unhandled Promise Rejection:', err);

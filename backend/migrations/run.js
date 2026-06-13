@@ -1,15 +1,6 @@
-require('dotenv').config();
-const { Pool } = require('pg');
+const { pool } = require('../config/database');
 const fs = require('fs');
 const path = require('path');
-
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  database: process.env.DB_NAME || 'peopleflow',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-});
 
 async function runMigrations() {
   const client = await pool.connect();
@@ -55,8 +46,17 @@ async function runMigrations() {
     throw error;
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-runMigrations().catch(console.error);
+if (require.main === module) {
+  runMigrations()
+    .then(() => pool.end())
+    .catch((err) => {
+      console.error(err);
+      pool.end();
+      process.exit(1);
+    });
+}
+
+module.exports = { runMigrations };
