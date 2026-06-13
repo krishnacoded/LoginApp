@@ -125,7 +125,7 @@ INSERT INTO skills (name, category_id, description) VALUES
 ON CONFLICT DO NOTHING;
 
 INSERT INTO employee_skills (employee_id, skill_id, proficiency_level, years_experience, is_primary)
-SELECT employee_id, skill_id, proficiency_level, years_experience, is_primary
+SELECT seed.employee_id, s.id, seed.proficiency_level, seed.years_experience, seed.is_primary
 FROM (VALUES
   ('77777777-7777-7777-7777-777777777004'::uuid, 'React', 4, 2.5, TRUE),
   ('77777777-7777-7777-7777-777777777004'::uuid, 'JavaScript', 4, 3.0, FALSE),
